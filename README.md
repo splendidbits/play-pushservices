@@ -114,7 +114,7 @@ resolvers += (
 )
 
 libraryDependencies ++= Seq(
-    "com.splendidbits" % "play-pushservices" % "1.0.1",
+    "com.splendidbits" % "play-pushservices" % "1.0.1"
 )
 ```
 
