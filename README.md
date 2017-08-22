@@ -6,12 +6,12 @@ This has been used in heavy deployment, pushing thousands of transit route alert
 
 
 
-##Features
+## Features
 
 * **Message Building.** An extensible message builder that makes it easy to add data and recipients for a particular message.
 * **Simple Asyncronous Callbacks.** Know exactly when each message has failed, partially failed, or completed with one or more detailed recipient failures.
 * **Safe Session Restoration.** Don't worry about an unexpected reboot or crashe in the middle of sending a batch of important push messages. It can be configured to use any datastore that Ebean supports, and as it keeps track of the state and data of each recipient, it'll will resume where it left off, retrying earlier messages.
-* **Provider Abstraction. ** Easy interfaces and data-models mean that you're not concerned with individual Push Provider (APNS or GCM) nuances.
+* **Provider Abstraction.** Easy interfaces and data-models mean that you're not concerned with individual Push Provider (APNS or GCM) nuances.
 * **Task Queing.** A task system that keeps track of the delivery status of each message for every notification recipient. The Task Queues mitigate a self denial-of-service for heavy notification delivery periods. 
 * **Batching.** The module intelligently decides if you have more recipients for a message than a provider supports, and internally handles batching the message, and rejoining the responses, so you don't need to worry about message recipient limitations.
 * **And More!** Review the code, or read the usage section below, and get started today within minutes.
@@ -104,7 +104,8 @@ taskQueue.queueTask(piccadillyLineStatus, new TaskQueueCallback() {
 
 ## Installation
 
-#####`build.sbt`
+##### `build.sbt`
+
 The module is hosted on Bintray. In order to use it, add the repository and dependency to your `build.sbt` file.
 
 ```bash
@@ -119,7 +120,7 @@ libraryDependencies ++= Seq(
 
 
 
-#####`application.conf`
+##### `application.conf`
 
 Add the module and database properties to your `application.conf ` file. Change the database name, platform name, and database credentials as you see fit, but leave the attribute prefix as *db.pushservices.*
 ```bash
@@ -137,7 +138,7 @@ db.pushservices.platformName="postgres"
 
 
 
-#####`CREATE_SCHEMA`
+##### `CREATE_SCHEMA`
 
 Import the pushservices database schema. Change the database name and credentials as you see fit, but do not alter the schema or table names. 
 
