@@ -138,13 +138,16 @@ db.pushservices.platformName="postgres"
 
 
 
-##### `CREATE_SCHEMA`
+##### `sample/CREATE_SCHEMA` 
 
-Import the pushservices database schema. Change the database name and credentials as you see fit, but do not alter the schema or table names. 
+Import the pushservices database schema found in the sample project. You may change the database name and credentials as you see fit, but do not alter the schema or table names. 
 
 
 
 ## Requirements
+
+* Guice dependency injection.
+* An ebean compatible database or datastore.
 
 The module has been tested on the following versions of Play Framework, but should be backwards compatible. Please update  the table below with your own findings.
 
@@ -152,6 +155,7 @@ The module has been tested on the following versions of Play Framework, but shou
 | :----------: | :--------: |
 |    2.6.x     |     Y      |
 |    2.5.x     |     Y      |
+|    2.4.x     |     ?      |
 
 
 
