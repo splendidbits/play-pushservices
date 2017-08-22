@@ -1,4 +1,4 @@
-# Play Framework push-services
+# Push Notification module for Play Framework
 
 A Play Framework Java module that makes it super simple to add **GCM** or (*soon*) **APNS** Push Notifications to your project. 
 
