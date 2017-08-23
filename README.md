@@ -110,7 +110,7 @@ Add the jCenter() repository and dependency to your `build.sbt` file.
 
 ```bash
 resolvers += (
-  "Splendid Bits repository" at "https://jcenter.bintray.com"
+  "Bintray jCenter repository" at "https://jcenter.bintray.com"
 )
 
 libraryDependencies ++= Seq(
