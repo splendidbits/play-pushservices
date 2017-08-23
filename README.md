@@ -106,11 +106,11 @@ taskQueue.queueTask(piccadillyLineStatus, new TaskQueueCallback() {
 
 ##### `build.sbt`
 
-The module is hosted on Bintray. In order to use it, add the repository and dependency to your `build.sbt` file.
+Add the jCenter() repository and dependency to your `build.sbt` file.
 
 ```bash
 resolvers += (
-  "Splendid Bits repository" at "http://dl.bintray.com/splendidbits/play-pushservices"
+  "Splendid Bits repository" at "https://jcenter.bintray.com"
 )
 
 libraryDependencies ++= Seq(
