@@ -1,6 +1,8 @@
-PushServices for PlayFramework
+Push Notification module for PlayFramework
 =========================
-
+## 1.0.2 - 2017-08-23
+ - Improvements to default database configuration
+ 
 ## 1.0.1 - 2017-08-22
  - Sample application and documentation
 
