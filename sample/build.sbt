@@ -3,7 +3,7 @@ import sbt.Keys.organizationHomepage
 name := "play-pushservices-sample"
 organization := "com.splendidbits"
 organizationHomepage := Some(new URL("https://splendidbits.co"))
-version := "1.0.1"
+version := "1.0.2"
 
 lazy val buildSettings = Seq(
   scalaVersion := "2.11.8"
@@ -23,7 +23,7 @@ libraryDependencies ++= Seq(
   javaJpa,
   javaWs,
   guice,
-  "com.splendidbits" % "play-pushservices" % "1.0.1",
+  "com.splendidbits" % "play-pushservices" % "1.0.2",
   "org.avaje" % "avaje-agentloader" % "2.1.2",
   "org.postgresql" % "postgresql" % "42.1.1"
 )
