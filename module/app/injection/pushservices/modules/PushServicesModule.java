@@ -23,16 +23,14 @@ public class PushServicesModule extends Module {
 
         Binding<EbeanServer> ebeanBinding = bind(EbeanServer.class)
                 .qualifiedWith(PushServicesEbeanServer.class)
-                .toProvider(PushServicesEbeanServerProvider.class)
-                .eagerly();
+                .toProvider(PushServicesEbeanServerProvider.class);
 
         Binding<ApplicationLifecycleListener> lifecycleBinding = bind(ApplicationLifecycleListener.class)
                 .toProvider(PushApplicationLifecycleProvider.class)
                 .eagerly();
 
         Binding<TaskQueueScheduler> taskqueueBinding = bind(TaskQueueScheduler.class)
-                .toSelf()
-                .eagerly();
+                .toSelf();
 
         return seq(ebeanBinding, lifecycleBinding, taskqueueBinding);
     }

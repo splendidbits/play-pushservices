@@ -1,4 +1,4 @@
-# Push Notification module for Play Framework
+# Push Notifications module for Play Framework
 
 A Play Framework Java module that makes it super simple to add **GCM** or (*soon*) **APNS** Push Notifications to your project. 
 
@@ -114,7 +114,7 @@ resolvers += (
 )
 
 libraryDependencies ++= Seq(
-    "com.splendidbits" % "play-pushservices" % "1.0.1"
+    "com.splendidbits" % "play-pushservices" % "1.0.2"
 )
 ```
 
@@ -122,18 +122,18 @@ libraryDependencies ++= Seq(
 
 ##### `application.conf`
 
-Add the module and database properties to your `application.conf ` file. Change the database name, platform name, and database credentials as you see fit, but leave the attribute prefix as *db.pushservices.*
+Add the module and database properties to your `application.conf ` file. Change the database name, platform name, and database credentials as you see fit, but leave the attribute prefix as *pushservices*.
 ```bash
 play.modules.enabled += "injection.pushservices.modules.PushServicesModule"
 
 # PushServices module database configuration.
-db.pushservices.driver=org.postgresql.Driver
-db.pushservices.connectionTimeout=10 seconds
-db.pushservices.name="pushservices_sample"
-db.pushservices.url="jdbc:postgresql://localhost:5432/pushservices_sample"
-db.pushservices.username="sampleuser"
-db.pushservices.password="samplepass"
-db.pushservices.platformName="postgres"
+pushservices.driver=org.postgresql.Driver
+pushservices.connectionTimeout=10 seconds
+pushservices.name="pushservices_sample"
+pushservices.url="jdbc:postgresql://localhost:5432/pushservices_sample"
+pushservices.username="sampleuser"
+pushservices.password="samplepass"
+pushservices.platformName="postgres"
 ```
 
 

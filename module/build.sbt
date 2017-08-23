@@ -33,6 +33,7 @@ playEbeanModels in Compile := Seq(
 // run 'sbt bintrayChangeCredentials' first!
 crossPaths := false
 pomIncludeRepository := (_ => true)
+publishArtifact := false
 publishArtifact in Test := false
 publishMavenStyle := true
 

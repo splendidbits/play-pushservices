@@ -20,7 +20,7 @@ import java.util.ArrayList;
  */
 @Singleton
 public class PushServicesEbeanServerProvider implements Provider<EbeanServer> {
-    private final static String SERVER_CONFIG_PREFIX = "db." + Constants.CONFIG_PREFIX + ".";
+    private final static String SERVER_CONFIG_PREFIX = Constants.CONFIG_PREFIX + ".";
     private Config mConfiguration;
 
     @Inject
