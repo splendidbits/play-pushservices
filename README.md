@@ -122,10 +122,28 @@ libraryDependencies ++= Seq(
 
 ##### `application.conf`
 
-Add the module and database properties to your `application.conf ` file. Change the database name, platform name, and database credentials as you see fit, but leave the attribute prefix as *pushservices*.
-```bash
-play.modules.enabled += "injection.pushservices.modules.PushServicesModule"
+Add the pushservices module hook to your Play application.  The simple way is by appending the`PushServicesModule` to the list of modules enabled in application.conf.
 
+```
+play.modules.enabled += "injection.pushservices.modules.PushServicesModule"
+```
+
+Another approach for advanced applications, or for those that need to enable to disable Guice modules under certain conditions such as tests, add the module to a GuiceApplicationLoader. You can see an example of this in the sample app.
+
+```
+public class YourApplicationClassLoader extends GuiceApplicationLoader {
+    @Override
+    public GuiceApplicationBuilder builder(ApplicationLoader.Context context) {
+        return initialBuilder
+        	.in(context.environment())
+        	.bindings(new PushServicesModule());
+    }
+}
+```
+
+Add the module and database properties to your `application.conf ` file. Change the database name, platform name, and database credentials as you see fit, but leave the attribute prefix as *pushservices*.
+
+```bash
 # PushServices module database configuration.
 pushservices.driver=org.postgresql.Driver
 pushservices.connectionTimeout=10 seconds
