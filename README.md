@@ -1,6 +1,6 @@
 # Push Notifications module for Play Framework
 
-A Play Framework Java module that makes it super simple to add **GCM** or (*soon*) **APNS** Push Notifications to your project. 
+A Play Framework Java module that makes it super simple to add **GCM** or (*soon*) **APNS** Push Notifications to your project. It has been built in a way that makes adding other push notification services a breeze.
 
 This has been used in heavy deployment, pushing thousands of transit route alerts per day to [SEPTA Instant](https://splendidbits.co/septainstant) for Android.
 
@@ -11,7 +11,7 @@ This has been used in heavy deployment, pushing thousands of transit route alert
 * **Message Building.** An extensible message builder that makes it easy to add data and recipients for a particular message.
 * **Simple Asyncronous Callbacks.** Know exactly when each message has failed, partially failed, or completed with one or more detailed recipient failures.
 * **Safe Session Restoration.** Don't worry about an unexpected reboot or crashe in the middle of sending a batch of important push messages. It can be configured to use any datastore that Ebean supports, and as it keeps track of the state and data of each recipient, it'll will resume where it left off, retrying earlier messages.
-* **Provider Abstraction.** Easy interfaces and data-models mean that you're not concerned with individual Push Provider (APNS or GCM) nuances.
+* **Push Provider Abstraction.** Easy interfaces and data-models mean that you're not concerned with individual Push Provider (APNS or GCM) nuances.
 * **Task Queing.** A task system that keeps track of the delivery status of each message for every notification recipient. The Task Queues mitigate a self denial-of-service for heavy notification delivery periods. 
 * **Batching.** The module intelligently decides if you have more recipients for a message than a provider supports, and internally handles batching the message, and rejoining the responses, so you don't need to worry about message recipient limitations.
 * **And More!** Review the code, or read the usage section below, and get started today within minutes.
@@ -21,9 +21,9 @@ This has been used in heavy deployment, pushing thousands of transit route alert
 
 ## Usage
 
-This repository contains a sample Play Framework which gives you an idea how easy it is to add Push Notifications to your Play project. These examples are for [Google Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/).
+This repository contains a sample Play Framework that gives you an idea how easy it is to add Push Notifications to your Play project. These examples are for [Google Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/).
 
-The below example demonstrates sending late train alerts for a particular London Underground line, but you can use it any way you wish. 
+The example below demonstrates sending late train alerts for a particular London Underground line, but you can use it to send any kind of notification. 
 
 
 
@@ -56,7 +56,7 @@ messageData.put("train_id", "2342");
 
 **4:** Build the notification message with `MessageBuilder`.
 ```java
-Message lateTrain1 = MessageBuilder.Builder messageBuilder = new MessageBuilder.Builder()
+Message lateTrain = MessageBuilder.Builder messageBuilder = new MessageBuilder.Builder()
         .setCollapseKey("piccadilly_line")
         .setPlatformCredentials(googleCredentials)
         .setTimeToLiveSeconds(60 * 60 * 6)
@@ -70,7 +70,7 @@ Message lateTrain1 = MessageBuilder.Builder messageBuilder = new MessageBuilder.
 @Inject TaskQueue taskQueue;
 
 Task piccadillyLineStatus = new Task("piccadilly-line-update");
-piccadillyLineStatus.messages = Arrays.asList(lateTrain1, lateTrain2, etc);
+piccadillyLineStatus.messages = Arrays.asList(lateTrain, secondLateTrain, ...);
 
 taskQueue.queueTask(piccadillyLineStatus, null);
 ```
@@ -106,7 +106,7 @@ taskQueue.queueTask(piccadillyLineStatus, new TaskQueueCallback() {
 
 ##### `build.sbt`
 
-Add the jCenter() repository and dependency to your `build.sbt` file.
+Add the jCenter repository and dependency to your `build.sbt` file.
 
 ```bash
 resolvers += (
@@ -128,7 +128,7 @@ Add the pushservices module hook to your Play application.  The simple way is by
 play.modules.enabled += "injection.pushservices.modules.PushServicesModule"
 ```
 
-Another approach for advanced applications, or for those that need to enable to disable Guice modules under certain conditions such as tests, add the module to a GuiceApplicationLoader. You can see an example of this in the sample app.
+Another approach for those that need to enable to disable Guice modules under certain conditions such as tests, add the module to a GuiceApplicationLoader. You can see an example of this in the sample app.
 
 ```
 public class YourApplicationClassLoader extends GuiceApplicationLoader {
@@ -167,7 +167,7 @@ Import the pushservices database schema found in the sample project. You may cha
 * Guice dependency injection.
 * An ebean compatible database or datastore.
 
-The module has been tested on the following versions of Play Framework, but should be backwards compatible. Please update  the table below with your own findings.
+The module has been tested on the following versions of Play Framework, but should be backwards compatible. Please update the table below with your own findings.
 
 | Play Version | Compatible |
 | :----------: | :--------: |
@@ -179,9 +179,10 @@ The module has been tested on the following versions of Play Framework, but shou
 
 ## Future features
 
-* **APNS.** (Apple Push Notification Service) support. At the moment the project supports Google's Cloud Messaging (GCM) framework, but it has been built in a way that should make adding APNS (and other push providers) a simple task.
+* **APNS.** (Apple Push Notification Service) support.
+* **WNS.** Windows Notification Service.
 * **Scala** API support.
-* **Statistics** web dashboard
+* **Statistics** A nice web dashboard.
 
 
 
