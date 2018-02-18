@@ -56,7 +56,7 @@ messageData.put("train_id", "2342");
 
 **4:** Build the notification message with `MessageBuilder`.
 ```java
-Message lateTrain = MessageBuilder.Builder messageBuilder = new MessageBuilder.Builder()
+Message lateTrain = new MessageBuilder.Builder()
         .setCollapseKey("piccadilly_line")
         .setPlatformCredentials(googleCredentials)
         .setTimeToLiveSeconds(60 * 60 * 6)
