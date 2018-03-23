@@ -62,6 +62,8 @@ public class TaskQueue {
      * TaskQueue {@link Task} polling process if it is not.
      */
     public void startup() {
+        Logger.info("TaskQueue Startup");
+
         // Start the message producer and consumer queues.
         startProducerQueue();
         startConsumerQueue();
@@ -91,12 +93,12 @@ public class TaskQueue {
      * TaskQueue {@link Task} polling process if it is not.
      */
     public void shutdown() {
-        if (mQueueProducerThread.isAlive()) {
+        if (mQueueProducerThread != null && mQueueProducerThread.isAlive()) {
             Logger.debug("Shutting down the TaskQueue Producer process.");
             mQueueProducerThread.interrupt();
         }
 
-        if (mQueueConsumerThread.isAlive()) {
+        if (mQueueConsumerThread != null && mQueueConsumerThread.isAlive()) {
             Logger.debug("Shutting down the TaskQueue Consumer process.");
             mQueueConsumerThread.interrupt();
         }

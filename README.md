@@ -114,7 +114,7 @@ resolvers += (
 )
 
 libraryDependencies ++= Seq(
-    "com.splendidbits" % "play-pushservices" % "1.0.2"
+    "com.splendidbits" % "play-pushservices" % "1.1"
 )
 ```
 
@@ -147,14 +147,14 @@ Add the module and database properties to your `application.conf ` file. Change 
 # PushServices module database configuration.
 pushservices.driver=org.postgresql.Driver
 pushservices.connectionTimeout=10 seconds
-pushservices.name="pushservices_sample"
-pushservices.url="jdbc:postgresql://localhost:5432/pushservices_sample"
+pushservices.name="my_app"
+pushservices.url="jdbc:postgresql://localhost:5432/my_app"
 pushservices.username="sampleuser"
 pushservices.password="samplepass"
-pushservices.platformName="postgres"
+pushservices.databasePlatformName="postgres"
 ```
 
-
+(You may also add any number of other support EBean ServerConfig properties. See the [ebean documentation](http://ebean-orm.github.io/docs/configuration/serverconfig) for more information).
 
 ##### `sample/CREATE_SCHEMA` 
 

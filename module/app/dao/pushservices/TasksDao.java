@@ -23,7 +23,7 @@ import java.util.List;
  * Copyright 5/10/16 Splendid Bits.
  */
 public class TasksDao {
-    private final EbeanServer mEbeanServer;
+    public final EbeanServer mEbeanServer;
 
     @Inject
     public TasksDao(@PushServicesEbeanServer EbeanServer ebeanServer) {
@@ -68,7 +68,7 @@ public class TasksDao {
                     .fetch("messages.payloadData")
                     .where()
                     .idEq(taskId)
-                    .findUnique();
+                    .findOne();
 
             if (task != null) {
                 mEbeanServer.deletePermanent(task);

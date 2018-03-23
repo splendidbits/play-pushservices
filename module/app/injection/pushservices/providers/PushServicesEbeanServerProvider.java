@@ -4,14 +4,18 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 import io.ebean.EbeanServer;
 import io.ebean.EbeanServerFactory;
 import io.ebean.config.ServerConfig;
 import main.pushservices.Constants;
 import models.pushservices.db.*;
-import org.avaje.datasource.DataSourceConfig;
+import play.Application;
 
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * GNU General Public License v3.0.
@@ -20,38 +24,34 @@ import java.util.ArrayList;
  */
 @Singleton
 public class PushServicesEbeanServerProvider implements Provider<EbeanServer> {
-    private final static String SERVER_CONFIG_PREFIX = Constants.CONFIG_PREFIX + ".";
-    private Config mConfiguration;
+    private final EbeanServer mEbeanServer;
 
     @Inject
-    public PushServicesEbeanServerProvider(Config configuration) {
-        mConfiguration = configuration;
-    }
+    public PushServicesEbeanServerProvider(Config configuration, Application application) {
+        if (configuration == null || configuration.isEmpty()) {
+            throw new RuntimeException("No Play Framework configuration found.");
+        }
 
-    @Override
-    public EbeanServer get() {
-        String datasourceUrl = mConfiguration.getString(SERVER_CONFIG_PREFIX + "url");
-        String datasourceUsername = mConfiguration.getString(SERVER_CONFIG_PREFIX + "username");
-        String datasourcePassword = mConfiguration.getString(SERVER_CONFIG_PREFIX + "password");
-        String datasourceDriver = mConfiguration.getString(SERVER_CONFIG_PREFIX + "driver");
-        String databaseName = mConfiguration.getString(SERVER_CONFIG_PREFIX + "name");
-        String platformName = mConfiguration.getString(SERVER_CONFIG_PREFIX + "platformName");
+        Config pushServicesConfig = configuration.withOnlyPath(Constants.CONFIG_PREFIX);
+        if (pushServicesConfig == null) {
+            throw new RuntimeException("No push services configuration found. Refer to documentation");
+        }
 
-        DataSourceConfig dataSourceConfig = new DataSourceConfig();
-        dataSourceConfig.setUrl(datasourceUrl);
-        dataSourceConfig.setDriver(datasourceDriver);
-        dataSourceConfig.setUsername(datasourceUsername);
-        dataSourceConfig.setPassword(datasourcePassword);
+        // Build custom properties from main configuration.
+        Properties properties = new Properties();
+        for (Map.Entry<String, ConfigValue> configEntry : pushServicesConfig.entrySet()) {
+            String[] keyParts = configEntry.getKey().split("\\.");
+            if (keyParts.length < 2) {
+                continue;
+            }
 
-        dataSourceConfig.setHeartbeatFreqSecs(60);
-        dataSourceConfig.setHeartbeatTimeoutSeconds(30);
-        dataSourceConfig.setMinConnections(3);
-        dataSourceConfig.setMaxConnections(30);
-        dataSourceConfig.setLeakTimeMinutes(1);
-        dataSourceConfig.setMaxInactiveTimeSecs(30);
-        dataSourceConfig.setWaitTimeoutMillis(1000 * 60);
-        dataSourceConfig.setTrimPoolFreqSecs(60);
-        dataSourceConfig.setCaptureStackTrace(true);
+            String key = keyParts[keyParts.length-1];
+            String value = configEntry.getValue().render();
+            if (configEntry.getValue().valueType().equals(ConfigValueType.STRING)) {
+                value = (String) configEntry.getValue().unwrapped();
+            }
+            properties.put(key, value);
+        }
 
         ArrayList<Class<?>> models = new ArrayList<>();
         models.add(Credentials.class);
@@ -62,16 +62,21 @@ public class PushServicesEbeanServerProvider implements Provider<EbeanServer> {
         models.add(Task.class);
 
         ServerConfig serverConfig = new ServerConfig();
-        serverConfig.setDataSourceConfig(dataSourceConfig);
-        serverConfig.setName(databaseName);
-        serverConfig.setDatabasePlatformName(platformName);
+        serverConfig.loadFromProperties(properties);
+
         serverConfig.setRegister(true);
-        serverConfig.setDefaultServer(true);
+        serverConfig.setDefaultServer(false);
         serverConfig.setUpdatesDeleteMissingChildren(false);
         serverConfig.setClasses(models);
         serverConfig.setDdlGenerate(false);
         serverConfig.setUpdateChangesOnly(false);
 
-        return EbeanServerFactory.create(serverConfig);
+        serverConfig.setName(Constants.CONFIG_PREFIX);
+        mEbeanServer = EbeanServerFactory.createWithContextClassLoader(serverConfig, application.classloader());
+    }
+
+    @Override
+    public EbeanServer get() {
+        return mEbeanServer;
     }
 }

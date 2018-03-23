@@ -1,11 +1,10 @@
 package injection.pushservices.modules;
 
 import annotations.pushservices.PushServicesEbeanServer;
-import injection.pushservices.providers.PushApplicationLifecycleProvider;
+import injection.pushservices.providers.PushLifecycleListenerProvider;
 import injection.pushservices.providers.PushServicesEbeanServerProvider;
 import io.ebean.EbeanServer;
-import main.pushservices.ApplicationLifecycleListener;
-import main.pushservices.TaskQueueScheduler;
+import main.pushservices.PushLifecycleListener;
 import play.api.Configuration;
 import play.api.Environment;
 import play.api.inject.Binding;
@@ -20,18 +19,13 @@ import scala.collection.Seq;
 public class PushServicesModule extends Module {
     @Override
     public Seq<Binding<?>> bindings(Environment environment, Configuration configuration) {
-
         Binding<EbeanServer> ebeanBinding = bind(EbeanServer.class)
                 .qualifiedWith(PushServicesEbeanServer.class)
                 .toProvider(PushServicesEbeanServerProvider.class);
 
-        Binding<ApplicationLifecycleListener> lifecycleBinding = bind(ApplicationLifecycleListener.class)
-                .toProvider(PushApplicationLifecycleProvider.class)
-                .eagerly();
+        Binding<PushLifecycleListener> lifecycleBinding = bind(PushLifecycleListener.class)
+                .toProvider(PushLifecycleListenerProvider.class);
 
-        Binding<TaskQueueScheduler> taskqueueBinding = bind(TaskQueueScheduler.class)
-                .toSelf();
-
-        return seq(ebeanBinding, lifecycleBinding, taskqueueBinding);
+        return seq(ebeanBinding, lifecycleBinding);
     }
 }
