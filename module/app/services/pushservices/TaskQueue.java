@@ -61,7 +61,7 @@ public class TaskQueue {
      * Checks that the task consumer process is active and running, and starts the
      * TaskQueue {@link Task} polling process if it is not.
      */
-    public void startup() {
+    public synchronized void startup() {
         Logger.info("TaskQueue Startup");
 
         // Start the message producer and consumer queues.
@@ -72,7 +72,7 @@ public class TaskQueue {
         queuePendingTaskMessages();
     }
 
-    private void startProducerQueue() {
+    private synchronized void startProducerQueue() {
         if (mQueueProducerThread == null || !mQueueProducerThread.isAlive()) {
             mQueueProducerThread = new MessageProducerThread(mMessageProcessQueue);
             Logger.debug("Starting the TaskQueue Producer process.");
@@ -80,7 +80,7 @@ public class TaskQueue {
         }
     }
 
-    private void startConsumerQueue() {
+    private synchronized void startConsumerQueue() {
         if (mQueueConsumerThread == null || !mQueueConsumerThread.isAlive()) {
             mQueueConsumerThread = new MessageConsumerThread();
             Logger.debug("Starting the TaskQueue Consumer process.");
@@ -92,7 +92,7 @@ public class TaskQueue {
      * Checks that the task consumer process is active and running, and starts the
      * TaskQueue {@link Task} polling process if it is not.
      */
-    public void shutdown() {
+    public synchronized void shutdown() {
         if (mQueueProducerThread != null && mQueueProducerThread.isAlive()) {
             Logger.debug("Shutting down the TaskQueue Producer process.");
             mQueueProducerThread.interrupt();

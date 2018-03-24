@@ -1,6 +1,7 @@
 package injection.pushservices.modules;
 
 import annotations.pushservices.PushServicesEbeanServer;
+import com.google.inject.Singleton;
 import injection.pushservices.providers.PushLifecycleListenerProvider;
 import injection.pushservices.providers.PushServicesEbeanServerProvider;
 import io.ebean.EbeanServer;
@@ -10,6 +11,7 @@ import play.api.Environment;
 import play.api.inject.Binding;
 import play.api.inject.Module;
 import scala.collection.Seq;
+import services.pushservices.TaskQueue;
 
 /**
  * GNU General Public License v3.0.
@@ -21,11 +23,17 @@ public class PushServicesModule extends Module {
     public Seq<Binding<?>> bindings(Environment environment, Configuration configuration) {
         Binding<EbeanServer> ebeanBinding = bind(EbeanServer.class)
                 .qualifiedWith(PushServicesEbeanServer.class)
-                .toProvider(PushServicesEbeanServerProvider.class);
+                .toProvider(PushServicesEbeanServerProvider.class)
+                .in(Singleton.class);
+
+        Binding<TaskQueue> taskQueue = bind(TaskQueue.class)
+                .toSelf()
+                .in(Singleton.class);
 
         Binding<PushLifecycleListener> lifecycleBinding = bind(PushLifecycleListener.class)
-                .toProvider(PushLifecycleListenerProvider.class);
+                .toProvider(PushLifecycleListenerProvider.class)
+                .in(Singleton.class);
 
-        return seq(ebeanBinding, lifecycleBinding);
+        return seq(ebeanBinding, taskQueue, lifecycleBinding);
     }
 }

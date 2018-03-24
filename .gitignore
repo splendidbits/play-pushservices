@@ -2,7 +2,6 @@
 workspace.xml
 *.iml
 *.lock
-*.komodoproject
 .DS_Store
 .classpath
 .cache
@@ -19,6 +18,4 @@ bin/
 .sbtserver
 out/
 passwords.txt
-activator
-activator-launch-*
 credentials.properties
