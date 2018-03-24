@@ -60,7 +60,7 @@ public class TasksDao {
      */
     public boolean deleteTask(long taskId) {
         try {
-            Task task = mEbeanServer.find(Task.class)
+            List<Task> tasks = mEbeanServer.find(Task.class)
                     .fetch("messages")
                     .fetch("messages.recipients")
                     .fetch("messages.recipients.failure")
@@ -68,10 +68,10 @@ public class TasksDao {
                     .fetch("messages.payloadData")
                     .where()
                     .idEq(taskId)
-                    .findOne();
+					.findList();
 
-            if (task != null) {
-                mEbeanServer.deletePermanent(task);
+            if (!tasks.isEmpty()) {
+                mEbeanServer.deleteAll(tasks);
                 return true;
             }
 
