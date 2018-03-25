@@ -2,7 +2,7 @@ name := "play-pushservices"
 organization := "com.splendidbits"
 organizationName := "Splendid Bits"
 organizationHomepage := Some(new URL("https://splendidbits.co"))
-version := "1.1.1"
+version := "1.1.2"
 
 lazy val buildSettings = Seq(
   scalaVersion := "2.11.8"

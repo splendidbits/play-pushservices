@@ -5,6 +5,7 @@ import enums.pushservices.RecipientState;
 import io.ebean.EbeanServer;
 import io.ebean.OrderBy;
 import models.pushservices.db.Message;
+import models.pushservices.db.Recipient;
 import models.pushservices.db.Task;
 import play.Logger;
 
@@ -23,7 +24,7 @@ import java.util.List;
  * Copyright 5/10/16 Splendid Bits.
  */
 public class TasksDao {
-    public final EbeanServer mEbeanServer;
+    private final EbeanServer mEbeanServer;
 
     @Inject
     public TasksDao(@PushServicesEbeanServer EbeanServer ebeanServer) {
@@ -37,19 +38,32 @@ public class TasksDao {
      * @param task the task to update.
      * @return true if the task was updated.
      */
-    public boolean insertTask(@Nonnull Task task) {
+    public boolean saveTask(@Nonnull Task task) {
         try {
-            mEbeanServer.markAsDirty(task);
-            mEbeanServer.insert(task);
-            return true;
+            List<Task> existingTasks = mEbeanServer.find(Task.class)
+                    .where()
+                    .idEq(task.id)
+                    .findList();
+
+            if (!existingTasks.isEmpty()) {
+                for (Message message : task.messages) {
+                    saveMessage(message);
+                }
+                mEbeanServer.update(task);
+
+            } else {
+                mEbeanServer.save(task);
+            }
 
         } catch (PersistenceException e) {
             Logger.error(String.format("Error inserting tasks model into database: %s.", e.getMessage()));
+            return false;
 
         } catch (Exception e) {
             Logger.error("Error inserting new task", e);
+            return false;
         }
-        return false;
+        return true;
     }
 
     /**
@@ -68,7 +82,7 @@ public class TasksDao {
                     .fetch("messages.payloadData")
                     .where()
                     .idEq(taskId)
-					.findList();
+                    .findList();
 
             if (!tasks.isEmpty()) {
                 mEbeanServer.deleteAll(tasks);
@@ -118,20 +132,31 @@ public class TasksDao {
      * @param message the message to update.
      * @return true if the message was updated.
      */
-    public boolean updateMessage(@Nonnull Message message) {
-        mEbeanServer.markAsDirty(message);
-
+    public boolean saveMessage(@Nonnull Message message) {
         try {
-            mEbeanServer.save(message);
+            if (message.id != null) {
+                if (message.recipients != null) {
+                    for (Recipient recipient : message.recipients) {
+                        if (recipient.failure != null) {
+                            mEbeanServer.save(recipient.failure);
+                        }
+                        mEbeanServer.save(recipient);
+                    }
+                }
+                mEbeanServer.update(message);
+                return true;
+            }
+            mEbeanServer.update(message);
             return true;
 
         } catch (PersistenceException e) {
             Logger.error(String.format("Error updating tasks model into database: %s.", e.getMessage()));
+            return false;
 
         } catch (Exception e) {
             Logger.error("Error updating task message", e);
+            return false;
         }
-        return false;
     }
 
     /**

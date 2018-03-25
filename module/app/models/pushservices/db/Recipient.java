@@ -24,7 +24,7 @@ public class Recipient extends Model implements Cloneable {
     @Column(name = "token", columnDefinition = "TEXT")
     public String token;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "message_id",
             table = "pushservices.messages",
@@ -44,7 +44,7 @@ public class Recipient extends Model implements Cloneable {
     @Column(name = "send_attempts")
     public int sendAttemptCount = 1;
 
-    @OneToOne(mappedBy = "recipient", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "recipient", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     public PlatformFailure failure;
 
     @Basic

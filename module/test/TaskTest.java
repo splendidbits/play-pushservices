@@ -1,6 +1,7 @@
 import dao.pushservices.TasksDao;
 import enums.pushservices.MessagePriority;
 import enums.pushservices.PlatformType;
+import exceptions.pushservices.TaskValidationException;
 import helpers.pushservices.MessageBuilder;
 import models.pushservices.db.Credentials;
 import models.pushservices.db.Message;
@@ -35,7 +36,7 @@ public class TaskTest extends PushServicesApplicationTest {
     }
 
     @Test
-    public void testMessageBuilder() {
+    public void testMessageBuilder() throws TaskValidationException {
         HashSet<String> tokens = new HashSet<>();
         tokens.add("test_token");
 
@@ -94,7 +95,7 @@ public class TaskTest extends PushServicesApplicationTest {
         task.addedTime = new Date();
         task.priority = Task.TASK_PRIORITY_HIGH;
         task.messages = messageList;
-        assertTrue(mTasksDao.insertTask(task));
+        assertTrue(mTasksDao.saveTask(task));
 
         List<Task> savedTasks = mTasksDao.findTasks("test");
         assertNotNull(savedTasks);

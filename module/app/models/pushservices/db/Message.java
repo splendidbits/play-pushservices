@@ -31,13 +31,13 @@ public class Message extends Model implements Cloneable {
             referencedColumnName = "id")
     public Task task;
 
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     public List<Recipient> recipients;
 
-    @OneToOne(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToOne(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     public Credentials credentials;
 
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     public List<PayloadElement> payloadData;
 
     @Column(name = "collapse_key")

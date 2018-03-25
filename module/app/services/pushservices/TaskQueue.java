@@ -155,7 +155,7 @@ public class TaskQueue {
                 // If there are pendingRecipients, dispatch the entire task.
                 if (messageRecipientCount > 0) {
                     // Update the task message in the database.
-                    mTasksDao.updateMessage(message);
+                    mTasksDao.saveMessage(message);
 
                     // Dispatch the message.
                     Logger.debug(String.format("Dispatching message %d", message.id));
@@ -195,7 +195,7 @@ public class TaskQueue {
         // Clone the task avoiding overwriting races by client.
         Task clonedTask = TaskHelper.copyTask(task);
 
-        if (!mTasksDao.insertTask(clonedTask)) {
+        if (!mTasksDao.saveTask(clonedTask)) {
             throw new TaskValidationException("Error saving Task. Check persistence settings.");
         }
 
@@ -243,7 +243,7 @@ public class TaskQueue {
                 recipient.failure = failureDetails;
             }
         }
-        mTasksDao.updateMessage(message);
+        mTasksDao.saveMessage(message);
     }
 
     /**
@@ -292,7 +292,7 @@ public class TaskQueue {
                 TaskQueueCallback messageCallback = mListeners.get(message.id);
 
                 // Save the message.
-                if (!mTasksDao.updateMessage(message)) {
+                if (!mTasksDao.saveMessage(message)) {
                     Logger.error("Failed to persist MessageResult message.");
                 }
 
@@ -340,7 +340,7 @@ public class TaskQueue {
                     message.id, platformFailure.failureMessage));
 
             // Update the message entry.
-            if (!mTasksDao.updateMessage(message)) {
+            if (!mTasksDao.saveMessage(message)) {
                 Logger.error("Failed to persist MessageResult message.");
             }
 

@@ -1,8 +1,9 @@
 Push Notification Services module for Play Framework
 -------------------------
 
-#### 1.1.1 - 2018-03-24
-- Synconization improvements.
+#### 1.1.2 - 2018-03-24
+- EBean insertion amd update cascade fixes.
+- Thread syncronization improvements.
 
 
 #### 1.1 - 2018-03-23
