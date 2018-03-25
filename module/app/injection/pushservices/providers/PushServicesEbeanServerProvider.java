@@ -11,7 +11,6 @@ import io.ebean.EbeanServerFactory;
 import io.ebean.config.ServerConfig;
 import main.pushservices.Constants;
 import models.pushservices.db.*;
-import play.Application;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -24,10 +23,15 @@ import java.util.Properties;
  */
 @Singleton
 public class PushServicesEbeanServerProvider implements Provider<EbeanServer> {
-    private final EbeanServer mEbeanServer;
+    private final Config configuration;
 
     @Inject
-    public PushServicesEbeanServerProvider(Config configuration, Application application) {
+    public PushServicesEbeanServerProvider(Config configuration) {
+        this.configuration = configuration;
+    }
+
+    @Override
+    public EbeanServer get() {
         if (configuration == null || configuration.isEmpty()) {
             throw new RuntimeException("No Play Framework configuration found.");
         }
@@ -65,18 +69,13 @@ public class PushServicesEbeanServerProvider implements Provider<EbeanServer> {
         serverConfig.loadFromProperties(properties);
 
         serverConfig.setRegister(true);
-        serverConfig.setDefaultServer(false);
+        serverConfig.setDefaultServer(true);
         serverConfig.setUpdatesDeleteMissingChildren(false);
         serverConfig.setClasses(models);
         serverConfig.setDdlGenerate(false);
         serverConfig.setUpdateChangesOnly(false);
 
         serverConfig.setName(Constants.CONFIG_PREFIX);
-        mEbeanServer = EbeanServerFactory.createWithContextClassLoader(serverConfig, application.classloader());
-    }
-
-    @Override
-    public EbeanServer get() {
-        return mEbeanServer;
+        return EbeanServerFactory.create(serverConfig);
     }
 }

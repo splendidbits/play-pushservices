@@ -20,8 +20,7 @@ libraryDependencies ++= Seq(
   guice,
   "commons-io" % "commons-io" % "2.5",
   "com.google.code.gson" % "gson" % "2.8.2",
-  "junit" % "junit" % "4.12" % Test,
-  "org.mockito" % "mockito-all" % "2.0.2-beta" % Test
+  "junit" % "junit" % "4.12" % Test
 )
 
 playEbeanDebugLevel := 4
