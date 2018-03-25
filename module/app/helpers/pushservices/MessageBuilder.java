@@ -39,7 +39,7 @@ public class MessageBuilder {
             message.credentials = mCredentials;
             message.collapseKey = mCollapseKey != null ? mCollapseKey : DEFAULT_COLLAPSE_KEY;
             message.ttlSeconds = mTtl;
-            message.isDryRun = mIsDryRun;
+            message.dryRun = mIsDryRun;
             message.shouldDelayWhileIdle = mShouldDelayWhileIdle;
             message.messagePriority = mMessagePriority;
 

@@ -40,14 +40,11 @@ public class TasksDao {
      */
     public boolean saveTask(@Nonnull Task task) {
         try {
-            List<Task> existingTasks = mEbeanServer.find(Task.class)
-                    .where()
-                    .idEq(task.id)
-                    .findList();
-
-            if (!existingTasks.isEmpty()) {
-                for (Message message : task.messages) {
-                    saveMessage(message);
+            if (task.id != null) {
+                if (task.messages != null) {
+                    for (Message message : task.messages) {
+                        saveMessage(message);
+                    }
                 }
                 mEbeanServer.update(task);
 

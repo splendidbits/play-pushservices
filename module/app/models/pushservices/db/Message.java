@@ -54,7 +54,7 @@ public class Message extends Model implements Cloneable {
     public boolean shouldDelayWhileIdle;
 
     @Column(name = "dry_run")
-    public boolean isDryRun;
+    public boolean dryRun;
 
     @Column(name = "maximum_retries")
     public int maximumRetries = 10;
@@ -87,7 +87,7 @@ public class Message extends Model implements Cloneable {
 
             boolean sameDelayWhileIdle = shouldDelayWhileIdle == other.shouldDelayWhileIdle;
 
-            boolean sameDryRun = isDryRun == other.isDryRun;
+            boolean sameDryRun = dryRun == other.dryRun;
 
             boolean bothPayloadsEmpty = payloadData == null && other.payloadData == null ||
                     (payloadData != null && payloadData.isEmpty() && other.payloadData != null && other.payloadData.isEmpty());
@@ -127,7 +127,7 @@ public class Message extends Model implements Cloneable {
 
         hashCode += shouldDelayWhileIdle ? 1 : 0;
 
-        hashCode += isDryRun ? 1 : 0;
+        hashCode += dryRun ? 1 : 0;
 
         hashCode += payloadData != null
                 ? payloadData.hashCode()
