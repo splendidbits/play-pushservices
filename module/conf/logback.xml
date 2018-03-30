@@ -16,19 +16,24 @@
     </appender>
 
     <!--
-      The log name is typically the Java/Scala package name.
+      The logger name is typically the Java/Scala package name.
       This configures the log level to log at for a package and its children packages.
     -->
-    <log name="play" level="INFO"/>
-    <log name="application" level="DEBUG"/>
+    <logger name="play" level="INFO"/>
+    <logger name="application" level="INFO"/>
 
     <root level="DEBUG">
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
     </root>
 
-    <logger name="org.avaje.ebean.SQL" level="ERROR"/>
-    <logger name="org.avaje.ebean.TXN" level="ERROR"/>
-    <logger name="org.avaje.ebean.SUM" level="ERROR"/>
+    <root level="ERROR">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
 
 </configuration>

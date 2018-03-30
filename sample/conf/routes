@@ -3,5 +3,5 @@
 # ~~~~
 
 # Home page
-GET         /                                        @controllers.TestPushController.index()
-GET         /robots.txt                              @controllers.TestPushController.robots()
+GET         /                                        @controllers.SampleController.index()
+GET         /robots.txt                              @controllers.SampleController.robots()

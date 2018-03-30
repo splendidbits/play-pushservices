@@ -16,7 +16,7 @@ public class GcmMessageSerializer implements JsonSerializer<Message> {
         for (Recipient recipient : recipients) {
 
             // Extra safeguard to ensure we don't add invalid recipients.
-            JsonPrimitive jsonRecipientToken = new JsonPrimitive(recipient.token != null ? recipient.token : "");
+            JsonPrimitive jsonRecipientToken = new JsonPrimitive(recipient.getToken() != null ? recipient.getToken() : "");
             mJsonRegistrationIds.add(jsonRecipientToken);
         }
     }
@@ -26,23 +26,23 @@ public class GcmMessageSerializer implements JsonSerializer<Message> {
 
         // Serialise the payload data into Json Elements.
         JsonObject jsonPayloadData = new JsonObject();
-        if (message.payloadData != null) {
-            for (PayloadElement payloadElement : message.payloadData) {
-                jsonPayloadData.add(payloadElement.key, new JsonPrimitive(payloadElement.value));
+        if (message.getPayloadData() != null) {
+            for (PayloadElement payloadElement : message.getPayloadData()) {
+                jsonPayloadData.add(payloadElement.getKey(), new JsonPrimitive(payloadElement.getValue()));
             }
         }
 
         // Serialise the main elements.
         JsonObject jsonMessage = new JsonObject();
-        jsonMessage.add("collapse_key", new JsonPrimitive(message.collapseKey));
-        jsonMessage.add("time_to_live", new JsonPrimitive(message.ttlSeconds));
-        jsonMessage.add("dry_run", new JsonPrimitive(message.dryRun));
+        jsonMessage.add("collapse_key", new JsonPrimitive(message.getCollapseKey()));
+        jsonMessage.add("time_to_live", new JsonPrimitive(message.getTtlSeconds()));
+        jsonMessage.add("dry_run", new JsonPrimitive(message.isDryRun()));
         jsonMessage.add("registration_ids", mJsonRegistrationIds);
         jsonMessage.add("data", jsonPayloadData);
 
         // Add a restricted package attribute.
-        if (message.credentials != null && message.credentials.packageUri != null) {
-            jsonMessage.add("restricted_package_name", new JsonPrimitive(message.credentials.packageUri));
+        if (message.getCredentials() != null && message.getCredentials().getPackageUri() != null) {
+            jsonMessage.add("restricted_package_name", new JsonPrimitive(message.getCredentials().getPackageUri()));
         }
 
         return jsonMessage;

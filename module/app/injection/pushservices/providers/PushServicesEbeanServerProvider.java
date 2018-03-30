@@ -63,7 +63,6 @@ public class PushServicesEbeanServerProvider implements Provider<EbeanServer> {
         models.add(PayloadElement.class);
         models.add(Recipient.class);
         models.add(PlatformFailure.class);
-        models.add(Task.class);
 
         ServerConfig serverConfig = new ServerConfig();
         serverConfig.loadFromProperties(properties);
@@ -72,9 +71,8 @@ public class PushServicesEbeanServerProvider implements Provider<EbeanServer> {
         serverConfig.setDefaultServer(true);
         serverConfig.setUpdatesDeleteMissingChildren(false);
         serverConfig.setClasses(models);
-        serverConfig.setDdlGenerate(false);
-        serverConfig.setUpdateChangesOnly(false);
 
+        serverConfig.setDdlGenerate(false);
         serverConfig.setName(Constants.CONFIG_PREFIX);
         return EbeanServerFactory.create(serverConfig);
     }

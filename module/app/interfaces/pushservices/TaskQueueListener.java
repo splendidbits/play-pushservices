@@ -1,6 +1,5 @@
 package interfaces.pushservices;
 
-import models.pushservices.app.FailedRecipient;
 import models.pushservices.app.UpdatedRecipient;
 import models.pushservices.db.Message;
 import models.pushservices.db.PlatformFailure;
@@ -16,7 +15,7 @@ import java.util.List;
  * Those include deleting a stale recipient such as (when they are not registered),
  * or when the {@link Recipient} information has changed and the client should update it.
  */
-public interface TaskQueueCallback {
+public interface TaskQueueListener {
 
     /**
      * Invoked with a collection of updated {@link Recipient} registrations.
@@ -33,7 +32,7 @@ public interface TaskQueueCallback {
      *
      * @param failedRecipients Recipients that a message was undeliverable to.
      */
-    void failedRecipients(@Nonnull List<FailedRecipient> failedRecipients);
+    void failedRecipients(@Nonnull List<Recipient> failedRecipients);
 
     /**
      * All recipients in a Message were processed and sent, but some recipients may
@@ -48,7 +47,7 @@ public interface TaskQueueCallback {
      * will not be retried.
      *
      * @param originalMessage Message which failed.
-     * @param failure         Details about the failure of all recipients.
+     * @param failure         Failure details
      */
     void messageFailed(@Nonnull Message originalMessage, PlatformFailure failure);
 }

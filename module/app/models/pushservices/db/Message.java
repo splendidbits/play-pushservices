@@ -5,143 +5,143 @@ import io.ebean.Finder;
 import io.ebean.Model;
 import io.ebean.annotation.JsonIgnore;
 
-import javax.annotation.Nonnull;
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 @Entity
 @Table(name = "messages", schema = "pushservices")
-public class Message extends Model implements Cloneable {
+public class Message extends Model {
     public static Finder<Long, Message> find = new Finder<>(Message.class);
     private static final int TTL_SECONDS_DEFAULT = 60 * 60 * 24 * 7;
 
     @Id
     @JsonIgnore
     @Column(name = "id")
-    @SequenceGenerator(name = "message_id_seq_gen", sequenceName = "message_id_seq", allocationSize = 1)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "message_id_seq_gen")
-    public Long id;
+    @SequenceGenerator(name = "gen", sequenceName = "pushservices.message_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "gen")
+    private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(
-            name = "task_id",
-            table = "pushservices.tasks",
-            referencedColumnName = "id")
-    public Task task;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Recipient> recipients;
 
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    public List<Recipient> recipients;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JoinColumn(name = "credentials_id")
+    private Credentials credentials;
 
-    @OneToOne(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    public Credentials credentials;
-
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    public List<PayloadElement> payloadData;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<PayloadElement> payloadData;
 
     @Column(name = "collapse_key")
-    public String collapseKey;
+    private String collapseKey;
 
     @Column(name = "priority")
     @Enumerated(EnumType.STRING)
-    public MessagePriority messagePriority = MessagePriority.PRIORITY_NORMAL;
+    private MessagePriority messagePriority = MessagePriority.PRIORITY_NORMAL;
 
     @Column(name = "ttl_seconds")
-    public int ttlSeconds = TTL_SECONDS_DEFAULT;
+    private int ttlSeconds = TTL_SECONDS_DEFAULT;
 
     @Column(name = "delay_while_idle")
-    public boolean shouldDelayWhileIdle;
+    private boolean shouldDelayWhileIdle;
 
     @Column(name = "dry_run")
-    public boolean dryRun;
+    private boolean dryRun;
 
     @Column(name = "maximum_retries")
-    public int maximumRetries = 10;
+    private int maximumRetries = 10;
 
     @Basic
-    @Column(name = "sent_time", columnDefinition = "timestamp without time zone")
+    @Column(name = "added_time", columnDefinition = "timestamp without time zone")
     @Temporal(TemporalType.TIMESTAMP)
-    public Date sentTime;
+    private Date addedTime;
 
-    @Transient
-    public void addRecipient(@Nonnull Recipient recipient) {
-        if (recipients == null) {
-            recipients = new ArrayList<>();
-        }
-        recipients.add(recipient);
+    @PrePersist
+    public void updatedTime() {
+        setAddedTime(new Date());
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Message) {
-            Message other = (Message) obj;
-
-            boolean sameCollapseKey = (collapseKey != null && other.collapseKey != null && collapseKey.equals(other.collapseKey));
-
-            boolean sameCredentials = (credentials != null && other.credentials != null && credentials.equals(other.credentials));
-
-            boolean samePriority = (messagePriority != null && other.messagePriority != null && messagePriority.equals(other.messagePriority));
-
-            boolean sameTtl = ttlSeconds == other.ttlSeconds;
-
-            boolean sameDelayWhileIdle = shouldDelayWhileIdle == other.shouldDelayWhileIdle;
-
-            boolean sameDryRun = dryRun == other.dryRun;
-
-            boolean bothPayloadsEmpty = payloadData == null && other.payloadData == null ||
-                    (payloadData != null && payloadData.isEmpty() && other.payloadData != null && other.payloadData.isEmpty());
-
-            boolean samePayloadData = bothPayloadsEmpty || (payloadData != null && other.payloadData != null && other.payloadData.containsAll(payloadData));
-
-            boolean bothRecipientsEmpty = (recipients == null && other.recipients == null) ||
-                    ((recipients != null && recipients.isEmpty()) && other.recipients != null && other.recipients.isEmpty());
-
-            boolean sameRecipients = bothRecipientsEmpty || (recipients != null && other.recipients != null &&
-                    recipients.containsAll(other.recipients) && other.recipients.containsAll(recipients));
-
-            // Match everything.
-            return sameCollapseKey && sameCredentials && samePriority && sameTtl &&
-                    sameDelayWhileIdle && sameDryRun && samePayloadData && sameRecipients;
-        }
-        return false;
+    public Long getId() {
+        return id;
     }
 
-    @Override
-    public int hashCode() {
-        Long hashCode = 0L;
-
-        hashCode += collapseKey != null
-                ? collapseKey.hashCode()
-                : hashCode;
-
-        hashCode += credentials != null
-                ? credentials.hashCode()
-                : hashCode;
-
-        hashCode += messagePriority != null
-                ? messagePriority.hashCode()
-                : hashCode;
-
-        hashCode += ttlSeconds;
-
-        hashCode += shouldDelayWhileIdle ? 1 : 0;
-
-        hashCode += dryRun ? 1 : 0;
-
-        hashCode += payloadData != null
-                ? payloadData.hashCode()
-                : hashCode;
-
-         hashCode += recipients != null
-                ? recipients.hashCode()
-                : hashCode;
-
-        return hashCode.hashCode();
+    public List<Recipient> getRecipients() {
+        return recipients;
     }
 
-    @Override
-    public Object clone() throws CloneNotSupportedException {
-        return super.clone();
+    public void setRecipients(List<Recipient> recipients) {
+        this.recipients = recipients;
+    }
+
+    public Credentials getCredentials() {
+        return credentials;
+    }
+
+    public void setCredentials(Credentials credentials) {
+        this.credentials = credentials;
+    }
+
+    public List<PayloadElement> getPayloadData() {
+        return payloadData;
+    }
+
+    public void setPayloadData(List<PayloadElement> payloadData) {
+        this.payloadData = payloadData;
+    }
+
+    public String getCollapseKey() {
+        return collapseKey;
+    }
+
+    public void setCollapseKey(String collapseKey) {
+        this.collapseKey = collapseKey;
+    }
+
+    public MessagePriority getMessagePriority() {
+        return messagePriority;
+    }
+
+    public void setMessagePriority(MessagePriority messagePriority) {
+        this.messagePriority = messagePriority;
+    }
+
+    public int getTtlSeconds() {
+        return ttlSeconds;
+    }
+
+    public void setTtlSeconds(int ttlSeconds) {
+        this.ttlSeconds = ttlSeconds;
+    }
+
+    public boolean isShouldDelayWhileIdle() {
+        return shouldDelayWhileIdle;
+    }
+
+    public void setShouldDelayWhileIdle(boolean shouldDelayWhileIdle) {
+        this.shouldDelayWhileIdle = shouldDelayWhileIdle;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+    }
+
+    public int getMaximumRetries() {
+        return maximumRetries;
+    }
+
+    public void setMaximumRetries(int maximumRetries) {
+        this.maximumRetries = maximumRetries;
+    }
+
+    public Date getAddedTime() {
+        return addedTime;
+    }
+
+    private void setAddedTime(Date addedTime) {
+        this.addedTime = addedTime;
     }
 }

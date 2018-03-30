@@ -2,7 +2,7 @@ name := "play-pushservices"
 organization := "com.splendidbits"
 organizationName := "Splendid Bits"
 organizationHomepage := Some(new URL("https://splendidbits.co"))
-version := "1.1.2"
+version := "1.2"
 
 lazy val buildSettings = Seq(
   scalaVersion := "2.11.8"
@@ -18,8 +18,10 @@ libraryDependencies ++= Seq(
   javaJpa,
   javaWs,
   guice,
+  "io.ebean" % "ebean-agent" % "10.1.6",
   "commons-io" % "commons-io" % "2.5",
   "com.google.code.gson" % "gson" % "2.8.2",
+  "org.postgresql" % "postgresql" % "42.2.2" % Test,
   "junit" % "junit" % "4.12" % Test
 )
 

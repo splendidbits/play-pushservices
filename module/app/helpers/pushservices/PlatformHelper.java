@@ -1,6 +1,6 @@
 package helpers.pushservices;
 
-import enums.pushservices.Failure;
+import enums.pushservices.FailureType;
 
 import javax.annotation.Nonnull;
 
@@ -19,94 +19,94 @@ public class PlatformHelper {
      * @param error GCM response error.
      * @return failureType error for Message or Recipient.
      */
-    public static Failure getGcmFailureType(@Nonnull String error) {
-        Failure failure;
+    public static FailureType getGcmFailureType(@Nonnull String error) {
+        FailureType failureType;
 
         switch (error) {
             case "MissingRegistration":
-                failure = Failure.MESSAGE_REGISTRATIONS_MISSING;
+                failureType = FailureType.MESSAGE_REGISTRATIONS_MISSING;
                 break;
             case "InvalidRegistration":
-                failure = Failure.RECIPIENT_REGISTRATION_INVALID;
+                failureType = FailureType.RECIPIENT_REGISTRATION_INVALID;
                 break;
             case "NotRegistered":
-                failure = Failure.RECIPIENT_NOT_REGISTERED;
+                failureType = FailureType.RECIPIENT_NOT_REGISTERED;
                 break;
             case "DeviceMessageRate Exceeded":
-                failure = Failure.RECIPIENT_RATE_EXCEEDED;
+                failureType = FailureType.RECIPIENT_RATE_EXCEEDED;
                 break;
             case "InvalidPackageName":
-                failure = Failure.MESSAGE_PACKAGE_INVALID;
+                failureType = FailureType.MESSAGE_PACKAGE_INVALID;
                 break;
             case "MismatchSenderId":
-                failure = Failure.PLATFORM_AUTH_MISMATCHED;
+                failureType = FailureType.PLATFORM_AUTH_MISMATCHED;
                 break;
             case "MessageTooBig":
-                failure = Failure.MESSAGE_TOO_LARGE;
+                failureType = FailureType.MESSAGE_TOO_LARGE;
                 break;
             case "InvalidDataKey":
-                failure = Failure.MESSAGE_PAYLOAD_INVALID;
+                failureType = FailureType.MESSAGE_PAYLOAD_INVALID;
                 break;
             case "InvalidTtl":
-                failure = Failure.MESSAGE_TTL_INVALID;
+                failureType = FailureType.MESSAGE_TTL_INVALID;
                 break;
             case "DeviceMessageRate":
-                failure = Failure.PLATFORM_LIMIT_EXCEEDED;
+                failureType = FailureType.PLATFORM_LIMIT_EXCEEDED;
                 break;
             case "Unavailable":
-                failure = Failure.TEMPORARILY_UNAVAILABLE;
+                failureType = FailureType.TEMPORARILY_UNAVAILABLE;
                 break;
             default:
-                failure = Failure.ERROR_UNKNOWN;
+                failureType = FailureType.ERROR_UNKNOWN;
                 break;
         }
 
         if (error.contains("401") || error.contains("Authentication")) {
-            return Failure.PLATFORM_AUTH_INVALID;
+            return FailureType.PLATFORM_AUTH_INVALID;
         }
-        return failure;
+        return failureType;
     }
 
     /**
-     * Get a human readable error for a {@link Failure}.
-     * @param failure Failure to get message string for.
+     * Get a human readable error for a {@link FailureType}.
+     * @param failureType Failure to get message string for.
      * @return Error string.
      */
-    public static String getGcmFailureName(@Nonnull Failure failure) {
-        if (failure == Failure.MESSAGE_REGISTRATIONS_MISSING) {
+    public static String getGcmFailureName(@Nonnull FailureType failureType) {
+        if (failureType == FailureType.MESSAGE_REGISTRATIONS_MISSING) {
             return "MissingRegistration";
 
-        } else if (failure == Failure.RECIPIENT_REGISTRATION_INVALID) {
+        } else if (failureType == FailureType.RECIPIENT_REGISTRATION_INVALID) {
             return "InvalidRegistration";
 
-        } else if (failure == Failure.RECIPIENT_NOT_REGISTERED) {
+        } else if (failureType == FailureType.RECIPIENT_NOT_REGISTERED) {
             return "NotRegistered";
 
-        } else if (failure == Failure.RECIPIENT_RATE_EXCEEDED) {
+        } else if (failureType == FailureType.RECIPIENT_RATE_EXCEEDED) {
             return "DeviceMessageRate Exceeded";
 
-        } else if (failure == Failure.MESSAGE_PACKAGE_INVALID) {
+        } else if (failureType == FailureType.MESSAGE_PACKAGE_INVALID) {
             return "InvalidPackageName";
 
-        } else if (failure == Failure.PLATFORM_AUTH_MISMATCHED) {
+        } else if (failureType == FailureType.PLATFORM_AUTH_MISMATCHED) {
             return "MismatchSenderId";
 
-        } else if (failure == Failure.MESSAGE_TOO_LARGE) {
+        } else if (failureType == FailureType.MESSAGE_TOO_LARGE) {
             return "MessageTooBig";
 
-        } else if (failure == Failure.MESSAGE_PAYLOAD_INVALID) {
+        } else if (failureType == FailureType.MESSAGE_PAYLOAD_INVALID) {
             return "InvalidDataKey";
 
-        } else if (failure == Failure.MESSAGE_TTL_INVALID) {
+        } else if (failureType == FailureType.MESSAGE_TTL_INVALID) {
             return "InvalidTtl";
 
-        } else if (failure == Failure.PLATFORM_LIMIT_EXCEEDED) {
+        } else if (failureType == FailureType.PLATFORM_LIMIT_EXCEEDED) {
             return "DeviceMessageRate";
 
-        } else if (failure == Failure.TEMPORARILY_UNAVAILABLE) {
+        } else if (failureType == FailureType.TEMPORARILY_UNAVAILABLE) {
             return "Unavailable";
 
-        } else if (failure == Failure.PLATFORM_AUTH_INVALID) {
+        } else if (failureType == FailureType.PLATFORM_AUTH_INVALID) {
             return "401 Authentication Error";
 
         } else {

@@ -1,3 +1,6 @@
+package main;
+
+import injection.pushservices.modules.PushServicesModule;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import play.Application;
@@ -5,6 +8,7 @@ import play.Mode;
 import play.api.inject.Binding;
 import play.api.inject.BindingKey;
 import play.api.routing.Router;
+import play.inject.ApplicationLifecycle;
 import play.inject.guice.GuiceApplicationBuilder;
 import play.routing.RoutingDsl;
 import play.test.Helpers;
@@ -18,7 +22,7 @@ import javax.inject.Provider;
  * Copyright 28/12/2016 Splendid Bits.
  */
 public abstract class PushServicesApplicationTest {
-    static Application application;
+    public static Application application;
 
     @BeforeClass
     public static void startApplicationTest() {
@@ -29,12 +33,15 @@ public abstract class PushServicesApplicationTest {
 
         application = new GuiceApplicationBuilder()
                 .in(Mode.TEST)
-                .configure("db.pushservices.name", "pushservices")
-                .configure("db.pushservices.driver", "org.postgresql.Driver")
-                .configure("db.pushservices.connectionTimeout", "10 seconds")
-                .configure("db.pushservices.url", "jdbc:postgresql://localhost:5432/pushservices")
-                .configure("db.pushservices.username", "YOUR_USERNAME")
-                .configure("db.pushservices.password", "YOUR_PASSWORD")
+                .configure("pushservices.name", "sample_app")
+                .configure("pushservices.driver", "org.postgresql.Driver")
+                .configure("pushservices.databasePlatformName", "postgres")
+                .configure("pushservices.url", "jdbc:postgresql://localhost:5432/pushservices_sample")
+                .configure("pushservices.username", "sampleuser")
+                .configure("pushservices.password", "samplepass")
+                .bindings(new PushServicesModule())
+                .overrides(routesBindingOverride)
+                .disable(ApplicationLifecycle.class)
                 .overrides(routesBindingOverride)
                 .build();
     }

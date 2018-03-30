@@ -1,6 +1,5 @@
 package interfaces.pushservices;
 
-import models.pushservices.app.FailedRecipient;
 import models.pushservices.app.UpdatedRecipient;
 import models.pushservices.db.Message;
 import models.pushservices.db.PlatformFailure;
@@ -26,10 +25,10 @@ public interface PlatformResponse {
     /**
      * A callback for an unrecoverable Platform message dispatch failure.
      *
-     * @param message         The original message send to the push-services
-     * @param platformFailure The Message Failure.
+     * @param message The original message send to the push-services
+     * @param failure The Message Failure.
      */
-    void messageFailure(@Nonnull Message message, PlatformFailure platformFailure);
+    void messageFailure(@Nonnull Message message, @Nonnull PlatformFailure failure);
 
     /**
      * A raw, unsorted callback for results returned for a message send from the push-services.
@@ -39,8 +38,9 @@ public interface PlatformResponse {
      * @param failedRecipients    The map of failed Recipients with the Failure.
      * @param recipientsToRetry   The list of recipients to exponentially retry.
      **/
-    void messageSuccess(@Nonnull Message message, @Nonnull List<Recipient> completedRecipients,
-                        @Nonnull List<FailedRecipient> failedRecipients,
+    void messageSuccess(@Nonnull Message message,
+                        @Nonnull List<Recipient> completedRecipients,
+                        @Nonnull List<Recipient> failedRecipients,
                         @Nonnull List<UpdatedRecipient> recipientsToUpdate,
-                        @Nonnull List<FailedRecipient> recipientsToRetry);
+                        @Nonnull List<Recipient> recipientsToRetry);
 }

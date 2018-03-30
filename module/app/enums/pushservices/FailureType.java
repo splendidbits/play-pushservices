@@ -13,7 +13,7 @@ import models.pushservices.db.PlatformFailure;
  * JavaDoc taken from:
  * https://developers.google.com/cloud-messaging/http-server-ref
  */
-public enum Failure {
+public enum FailureType {
 
     /**
      * [GCM] [APNS]
@@ -46,7 +46,7 @@ public enum Failure {
      * messages sent to this device and do not immediately retry sending to this device.
      */
     @EnumValue("PLATFORM_LIMIT_EXCEEDED")
-    PLATFORM_LIMIT_EXCEEDED(true),
+    PLATFORM_LIMIT_EXCEEDED(false),
 
     /**
      * [GCM] [APNS]
@@ -56,7 +56,7 @@ public enum Failure {
      * please report the problem in the android-gcm group.
      */
     @EnumValue("TEMPORARILY_UNAVAILABLE")
-    TEMPORARILY_UNAVAILABLE(true),
+    TEMPORARILY_UNAVAILABLE(false),
 
     /**
      * [GCM] [APNS]
@@ -129,7 +129,7 @@ public enum Failure {
      * to send messages.
      */
     @EnumValue("RECIPIENT_NOT_REGISTERED")
-    RECIPIENT_NOT_REGISTERED(false),
+    RECIPIENT_NOT_REGISTERED(true),
 
     /**
      * [GCM] [APNS]
@@ -139,7 +139,7 @@ public enum Failure {
      * Do not truncate or add additional characters.
      */
     @EnumValue("RECIPIENT_REGISTRATION_INVALID")
-    RECIPIENT_REGISTRATION_INVALID(false),
+    RECIPIENT_REGISTRATION_INVALID(true),
 
     /**
      * [GCM [APNS]
@@ -153,9 +153,8 @@ public enum Failure {
     /**
      * true if the error non recoverable and no messages were delivered.
      */
-    public boolean isFatal = false;
-
-    Failure(boolean critical) {
+    public boolean isFatal;
+    FailureType(boolean critical) {
         isFatal = critical;
     }
 }

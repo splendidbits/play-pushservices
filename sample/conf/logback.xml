@@ -8,7 +8,6 @@
         </encoder>
     </appender>
 
-
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>${application.home:-.}/logs/application.log</file>
         <encoder>
@@ -20,10 +19,19 @@
       The logger name is typically the Java/Scala package name.
       This configures the log level to log at for a package and its children packages.
     -->
-    <logger name="play" level="DEBUG"/>
-    <logger name="application" level="DEBUG"/>
+    <logger name="play" level="INFO"/>
+    <logger name="application" level="INFO"/>
 
     <root level="DEBUG">
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <root level="ERROR">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
     </root>

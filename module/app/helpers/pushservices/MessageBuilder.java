@@ -1,7 +1,7 @@
 package helpers.pushservices;
 
 import enums.pushservices.MessagePriority;
-import exceptions.pushservices.TaskValidationException;
+import exceptions.pushservices.MessageValidationException;
 import models.pushservices.db.Credentials;
 import models.pushservices.db.Message;
 import models.pushservices.db.PayloadElement;
@@ -27,6 +27,7 @@ public class MessageBuilder {
         private boolean mShouldDelayWhileIdle = true;
         private boolean mIsDryRun = false;
         private String mCollapseKey;
+        private int mMaxMessageRetries = 3;
 
         /**
          * Build the platform raw push service platform message.
@@ -34,55 +35,53 @@ public class MessageBuilder {
          * @return Push Service {@link Message} for a push platform.
          */
         @Nullable
-        public Message build() throws TaskValidationException {
-            Message message = new Message();
-            message.credentials = mCredentials;
-            message.collapseKey = mCollapseKey != null ? mCollapseKey : DEFAULT_COLLAPSE_KEY;
-            message.ttlSeconds = mTtl;
-            message.dryRun = mIsDryRun;
-            message.shouldDelayWhileIdle = mShouldDelayWhileIdle;
-            message.messagePriority = mMessagePriority;
-
-            // Add recipients.
+        public Message build() throws MessageValidationException {
+            List<Recipient> recipients = new ArrayList<>();
             for (String token : mMessageTokens) {
                 Recipient recipient = new Recipient(token);
-                message.addRecipient(recipient);
+                recipients.add(recipient);
             }
 
-            // Validate that the necessary attributes have been set.
-            if (message.credentials == null) {
-                throw new RuntimeException("Credentials were missing set attributes.");
+            List<PayloadElement> payload = new ArrayList<>();
+            for (Map.Entry<String, String> datum : mMessageData.entrySet()) {
+                payload.add(new PayloadElement(datum.getKey(), datum.getValue()));
             }
 
-            // Add data.
-            message.payloadData = new ArrayList<>();
-            for (Map.Entry<String, String> entry : mMessageData.entrySet()) {
-                message.payloadData.add(new PayloadElement(entry.getKey(), entry.getValue()));
-            }
+            Message message = new Message();
+            message.setRecipients(recipients);
+            message.setCredentials(mCredentials);
+            message.setCollapseKey(mCollapseKey != null ? mCollapseKey : DEFAULT_COLLAPSE_KEY);
+            message.setTtlSeconds(mTtl);
+            message.setDryRun(mIsDryRun);
+            message.setPayloadData(payload);
+            message.setMaximumRetries(mMaxMessageRetries);
+            message.setShouldDelayWhileIdle(mShouldDelayWhileIdle);
+            message.setMessagePriority(mMessagePriority);
 
-            boolean hasAuthKey = message.credentials.authKey != null && !message.credentials.authKey.isEmpty();
-            boolean hasCertBody = message.credentials.certBody != null && !message.credentials.certBody.isEmpty();
-            boolean hasPlatformType = message.credentials.platformType != null;
-
-            if (!hasAuthKey && !hasCertBody) {
-                throw new TaskValidationException("Either an auth key or cert must be supplied.");
-
-            } else if (!hasPlatformType) {
-                throw new TaskValidationException("A PlatformType must be supplied.");
-            }
-
+            MessageHelper.verifyMessage(message);
             return message;
         }
 
         /**
-         * Add a of platform device token for the message to be sent to.
+         * Set a list of platform device token for the message to be sent to.
          *
          * @param tokens device tokens to send message to.
          */
         public Builder setDeviceTokens(@Nonnull Set<String> tokens) {
-            mMessageTokens = tokens;
+            mMessageTokens.addAll(tokens);
             return this;
         }
+
+        /**
+         * Add platform device token for the message to be sent to.
+         *
+         * @param token device token tokens to send message to.
+         */
+        public Builder addDeviceToken(@Nonnull String... token) {
+            mMessageTokens.addAll(Arrays.asList(token));
+            return this;
+        }
+
 
         /**
          * Setting this to true allows a response back from the server for a sent message,
@@ -102,7 +101,7 @@ public class MessageBuilder {
          * @param attributeKey   key of message attribute.
          * @param attributeValue value of message attribute.
          */
-        public Builder putData(String attributeKey, String attributeValue) {
+        public Builder addData(String attributeKey, String attributeValue) {
             if (attributeKey != null && attributeValue != null) {
                 mMessageData.put(attributeKey, attributeValue);
             }
@@ -127,12 +126,11 @@ public class MessageBuilder {
          * @param credentials push service platform credentials.
          */
         public Builder setPlatformCredentials(@Nonnull Credentials credentials) {
-            try {
-                mCredentials = (Credentials) credentials.clone();
-
-            } catch (CloneNotSupportedException e) {
-                e.printStackTrace();
-            }
+            Credentials credentialsCopy = new Credentials(credentials.getPlatformType());
+            credentialsCopy.setAuthKey(credentials.getAuthKey());
+            credentialsCopy.setCertBody(credentials.getCertBody());
+            credentialsCopy.setPackageUri(credentials.getPackageUri());
+            mCredentials = credentialsCopy;
             return this;
         }
 
@@ -144,6 +142,16 @@ public class MessageBuilder {
          */
         public Builder setTimeToLiveSeconds(int ttl) {
             mTtl = ttl;
+            return this;
+        }
+
+        /**
+         * Sets the number of attempts the Message Dispatcher will try sending a message
+         * to a recipient that hasn't fatally failed (for example, when we are told to back-off
+         * from the provider). Default is 3.
+         */
+        public Builder setSoftFailRetries(int maxRetries) {
+            mMaxMessageRetries = maxRetries;
             return this;
         }
 
@@ -169,8 +177,8 @@ public class MessageBuilder {
          * Setting to false will override the {@link MessagePriority} and set it
          * to MessagePriority.HIGH.
          *
-         * @deprecated Google have deprecated this feature in favor of setMessagePriority
          * @param shouldDelayWhileIdle default is true.
+         * @deprecated Google have deprecated this feature in favor of setMessagePriority
          */
         @Deprecated
         public Builder setShouldDelayWhileIdle(boolean shouldDelayWhileIdle) {

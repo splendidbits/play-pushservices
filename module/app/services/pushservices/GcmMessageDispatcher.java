@@ -4,13 +4,13 @@ import appmodels.pushservices.GcmResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
-import enums.pushservices.Failure;
+import enums.pushservices.FailureType;
+import enums.pushservices.PlatformType;
 import enums.pushservices.RecipientState;
 import exceptions.pushservices.PlatformEndpointException;
+import helpers.pushservices.MessageHelper;
 import helpers.pushservices.PlatformHelper;
-import helpers.pushservices.TaskHelper;
 import interfaces.pushservices.PlatformResponse;
-import models.pushservices.app.FailedRecipient;
 import models.pushservices.app.UpdatedRecipient;
 import models.pushservices.db.Message;
 import models.pushservices.db.PlatformFailure;
@@ -25,8 +25,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 
 /**
  * Sends GCM alerts to a batch of given tokens and data.
@@ -56,12 +54,12 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
      * @param responseListener The response listener.
      */
     public void dispatchMessage(@Nonnull Message message, @Nonnull PlatformResponse responseListener) {
-        CompletableFuture.runAsync(new Runnable() {
-            @Override
-            public void run() {
-                dispatchMessageInternal(message, responseListener);
-            }
-        });
+        CompletableFuture.runAsync(() -> dispatchMessageInternal(message, responseListener));
+    }
+
+    @Override
+    public PlatformType getPlatform() {
+        return PlatformType.SERVICE_GCM;
     }
 
     /**
@@ -74,17 +72,22 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
         final Date currentTime = new Date();
 
         // Return error on no recipients.
-        if (message.recipients == null || message.recipients.isEmpty()) {
-            PlatformFailure platformFailure = new PlatformFailure(Failure.MESSAGE_REGISTRATIONS_MISSING,
-                    PlatformHelper.getGcmFailureName(Failure.MESSAGE_REGISTRATIONS_MISSING), currentTime);
+        if (message.getRecipients() == null || message.getRecipients().isEmpty()) {
+            PlatformFailure platformFailure = new PlatformFailure(FailureType.MESSAGE_REGISTRATIONS_MISSING,
+                    PlatformHelper.getGcmFailureName(FailureType.MESSAGE_REGISTRATIONS_MISSING), currentTime);
             responseListener.messageFailure(message, platformFailure);
             return;
         }
 
         // Return error on no platform.
-        if (message.credentials == null || message.credentials.platformType == null) {
-            PlatformFailure platformFailure = new PlatformFailure(Failure.PLATFORM_AUTH_INVALID,
-                    PlatformHelper.getGcmFailureName(Failure.PLATFORM_AUTH_INVALID), currentTime);
+        if (message.getCredentials() == null || message.getCredentials().getPlatformType() == null) {
+            PlatformFailure platformFailure = new PlatformFailure(FailureType.PLATFORM_AUTH_INVALID,
+                    PlatformHelper.getGcmFailureName(FailureType.PLATFORM_AUTH_INVALID), currentTime);
+
+            for (Recipient recipient : message.getRecipients()) {
+                recipient.setState(RecipientState.STATE_FAILED);
+                recipient.setFailure(platformFailure);
+            }
 
             responseListener.messageFailure(message, platformFailure);
             return;
@@ -92,7 +95,7 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
 
         // Split the recipients into "batches" of 1000 as it could be over the max size for a GCM message.
         final Map<Integer, List<Recipient>> recipientBatches = batchMessageRecipients(message);
-        List<Integer> processedBatches = new CopyOnWriteArrayList<>();
+        Set<Integer> processedBatches = new HashSet<>();
         ConcurrentHashMap<Integer, GcmResponse> messageBatchResponses = new ConcurrentHashMap<>();
 
         // Iterate through each recipient batch and get a GcmResponse for it. Then join all batches.
@@ -101,71 +104,67 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
             final List<Recipient> batch = batchEntry.getValue();
 
             // Send each message and save the response. When all responses are returned, combine them and call listener.
-            sendMessage(message, batch).thenAccept(new Consumer<WSResponse>() {
+            sendMessage(message, batch)
+                    .thenAccept(response -> {
+                        GcmResponse gcmResponse = parseMessageResponse(response);
+                        Logger.debug(String.format("Finished parsing GCM Response for batch %d", batchNumber));
 
-                @Override
-                public void accept(WSResponse response) {
-                    GcmResponse gcmResponse = parseMessageResponse(response);
-                    messageBatchResponses.put(batchNumber, gcmResponse);
-                    processedBatches.add(batchNumber);
-                    Logger.debug(String.format("Finished parsing GCM Response for batch %d", batchNumber));
+                        messageBatchResponses.put(batchNumber, gcmResponse);
+                        processedBatches.add(batchNumber);
 
-                    // If all the provider responses have returned, combine all and return the result.
-                    if (processedBatches.size() == recipientBatches.size()) {
-                        MessageDispatchResult result = combineResponses(recipientBatches, messageBatchResponses);
-                        responseListener.messageSuccess(message, result.completedRecipients, result.failedRecipients,
-                                result.recipientsToUpdate, result.recipientsToRetry);
-                    }
-                }
+                        // If all the provider responses have returned, combine all and return the result.
+                        if (processedBatches.size() == recipientBatches.size()) {
+                            MessageDispatchResult result = combineResponses(recipientBatches, messageBatchResponses, message.getMaximumRetries());
+                            responseListener.messageSuccess(message, result.completedRecipients, result.failedRecipients,
+                                    result.recipientsToUpdate, result.recipientsToRetry);
+                        }
 
-            }).exceptionally(
+                    }).exceptionally(
+
                     e -> {
+                        PlatformFailure newFailure = new PlatformFailure(FailureType.ERROR_UNKNOWN,
+                                PlatformHelper.getGcmFailureName(FailureType.ERROR_UNKNOWN), new Date());
+
                         if (e instanceof PlatformEndpointException) {
-                            // Transform a known exception into a application {@link PlatformFailure}.
                             PlatformEndpointException exception = (PlatformEndpointException) e;
 
-                            if (exception.mStatusCode == 400) {
-                                PlatformFailure platformFailure = new PlatformFailure(Failure.MESSAGE_PAYLOAD_INVALID,
-                                        PlatformHelper.getGcmFailureName(Failure.MESSAGE_PAYLOAD_INVALID), currentTime);
+                            for (Recipient recipient : message.getRecipients()) {
+                                int statusCode = exception.mStatusCode;
 
-                                responseListener.messageFailure(message, platformFailure);
+                                if (statusCode == 400) {
+                                    recipient.setState(RecipientState.STATE_FAILED);
+                                    newFailure = new PlatformFailure(FailureType.MESSAGE_PAYLOAD_INVALID,
+                                            PlatformHelper.getGcmFailureName(FailureType.MESSAGE_PAYLOAD_INVALID));
 
-                            } else if (exception.mStatusCode == 401) {
-                                PlatformFailure platformFailure = new PlatformFailure(Failure.PLATFORM_AUTH_INVALID,
-                                        PlatformHelper.getGcmFailureName(Failure.PLATFORM_AUTH_INVALID), currentTime);
+                                } else if (statusCode == 401) {
+                                    recipient.setState(RecipientState.STATE_FAILED);
+                                    newFailure = new PlatformFailure(FailureType.PLATFORM_AUTH_INVALID,
+                                            PlatformHelper.getGcmFailureName(FailureType.PLATFORM_AUTH_INVALID));
 
-                                responseListener.messageFailure(message, platformFailure);
-
-                            } else if (exception.mStatusCode >= 500 && exception.mStatusCode <= 599) {
-                                Calendar earliestRetryDate = Calendar.getInstance();
-
-                                MessageDispatchResult messageDispatchResult = new MessageDispatchResult();
-                                PlatformFailure platformFailure = new PlatformFailure(Failure.TEMPORARILY_UNAVAILABLE,
-                                        PlatformHelper.getGcmFailureName(Failure.TEMPORARILY_UNAVAILABLE), currentTime);
-
-                                for (Recipient recipient : message.recipients) {
-                                    earliestRetryDate.setTime(recipient.timeAdded);
-                                    earliestRetryDate.add(Calendar.MINUTE, (recipient.sendAttemptCount * 2));
-
-                                    recipient.state = RecipientState.STATE_WAITING_RETRY;
-                                    recipient.failure = platformFailure;
-                                    TaskHelper.setRecipientCoolingOff(recipient, earliestRetryDate);
-
-                                    messageDispatchResult.recipientsToRetry.add(new FailedRecipient(recipient, platformFailure));
+                                } else if (statusCode >= 500 && statusCode <= 599) {
+                                    MessageHelper.setRecipientRetry(getPlatform(), recipient, message.getMaximumRetries());
+                                    newFailure = new PlatformFailure(FailureType.TEMPORARILY_UNAVAILABLE,
+                                            PlatformHelper.getGcmFailureName(FailureType.TEMPORARILY_UNAVAILABLE));
+                                } else {
+                                    recipient.setState(RecipientState.STATE_FAILED);
+                                    newFailure = new PlatformFailure(FailureType.ERROR_UNKNOWN,
+                                            PlatformHelper.getGcmFailureName(FailureType.ERROR_UNKNOWN));
                                 }
 
-                                responseListener.messageSuccess(message, messageDispatchResult.completedRecipients,
-                                        messageDispatchResult.failedRecipients, messageDispatchResult.recipientsToUpdate,
-                                        messageDispatchResult.recipientsToRetry);
+                                if (recipient.getPlatformFailure() == null) {
+                                    recipient.setFailure(newFailure);
+                                }
 
-                            } else {
-                                PlatformFailure platformFailure = new PlatformFailure(
-                                        Failure.ERROR_UNKNOWN,
-                                        PlatformHelper.getGcmFailureName(Failure.ERROR_UNKNOWN),
-                                        currentTime);
-
-                                responseListener.messageFailure(message, platformFailure);
+                                recipient.getPlatformFailure().setFailureType(newFailure.getFailureType());
+                                recipient.getPlatformFailure().setFailTime(new Date());
                             }
+                        }
+
+                        if (newFailure.getFailureType().isFatal) {
+                            responseListener.messageFailure(message, newFailure);
+                        } else {
+                            responseListener.messageSuccess(message, new ArrayList<>(),
+                                    new ArrayList<>(), new ArrayList<>(), message.getRecipients());
                         }
                         return null;
                     });
@@ -208,7 +207,7 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
         HashMap<Integer, List<Recipient>> sortedBatches = new HashMap<>();
 
         // Add each registration_id to the message in batches of 1000.
-        List<Recipient> totalMessageRecipients = message.recipients;
+        List<Recipient> totalMessageRecipients = message.getRecipients();
         if (totalMessageRecipients != null && !totalMessageRecipients.isEmpty()) {
 
             List<Recipient> currentBatchRecipients = new ArrayList<>();
@@ -216,22 +215,23 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
             int recipientCount = 0;
 
             for (Recipient recipient : totalMessageRecipients) {
-                // Do not count or add non-valid recipients.
-                if (TaskHelper.isRecipientPending(recipient) && !TaskHelper.isRecipientCoolingOff(recipient)) {
 
-                    // If there's ~1000 registrations, create a new batch
-                    if (recipientCount == MESSAGE_RECIPIENT_BATCH_SIZE && !currentBatchRecipients.isEmpty()) {
-                        sortedBatches.put(batchNumber, currentBatchRecipients);
-
-                        // Reset counters and batch recipients.
-                        currentBatchRecipients = new CopyOnWriteArrayList<>();
-                        recipientCount = 0;
-                        batchNumber++;
-                    }
-
-                    currentBatchRecipients.add(recipient);
-                    recipientCount += 1;
+                if (MessageHelper.isRecipientCoolingOff(recipient)) {
+                    continue;
                 }
+
+                // If there's ~1000 registrations, create a new batch
+                if (recipientCount == MESSAGE_RECIPIENT_BATCH_SIZE && !currentBatchRecipients.isEmpty()) {
+                    sortedBatches.put(batchNumber, currentBatchRecipients);
+
+                    // Reset counters and batch recipients.
+                    currentBatchRecipients = new ArrayList<>();
+                    recipientCount = 0;
+                    batchNumber++;
+                }
+
+                currentBatchRecipients.add(recipient);
+                recipientCount += 1;
             }
 
             // When done, add the current batch recipients to the map;
@@ -252,15 +252,17 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
      */
     @Nonnull
     private CompletionStage<WSResponse> sendMessage(@Nonnull Message message, @Nonnull List<Recipient> recipients) {
+        Logger.info(String.format("Sending message %d with %d recipients to the Google GCM endpoint", message.getId(), recipients.size()));
+
         String jsonBody = new GsonBuilder()
                 .registerTypeAdapter(Message.class, new GcmMessageSerializer(recipients))
                 .create()
                 .toJson(message);
 
         return mWsClient
-                .url(message.credentials.platformType.url)
+                .url(message.getCredentials().getPlatformType().url)
                 .setContentType("application/json")
-                .setHeader("Authorization", String.format("key=%s", message.credentials.authKey))
+                .setHeader("Authorization", String.format("key=%s", message.getCredentials().getAuthKey()))
                 .setRequestTimeout(ENDPOINT_REQUEST_TIMEOUT_SECONDS)
                 .setFollowRedirects(true)
                 .post(jsonBody);
@@ -275,7 +277,7 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
      */
     @Nonnull
     private MessageDispatchResult combineResponses(@Nonnull Map<Integer, List<Recipient>> recipientBatches,
-                                                   @Nonnull Map<Integer, GcmResponse> gcmResponses) {
+                                                   @Nonnull Map<Integer, GcmResponse> gcmResponses, int maxRetries) {
         MessageDispatchResult messageDispatchResult = new MessageDispatchResult();
         Date date = new Date();
 
@@ -292,23 +294,39 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
 
                 // A successful message.
                 if (resultData.messageId != null && !resultData.messageId.isEmpty()) {
+                    recipient.setState(RecipientState.STATE_COMPLETE);
                     messageDispatchResult.completedRecipients.add(recipient);
                 }
 
                 // Check for changed registration token.
                 if (resultData.registrationId != null && !resultData.registrationId.isEmpty()) {
+                    recipient.setState(RecipientState.STATE_COMPLETE);
                     Recipient updatedRecipient = new Recipient(resultData.registrationId);
                     messageDispatchResult.recipientsToUpdate.add(new UpdatedRecipient(recipient, updatedRecipient));
                 }
 
                 // Check for recipient errors.
                 if (resultData.error != null && !resultData.error.isEmpty()) {
-                    Failure failure = PlatformHelper.getGcmFailureType(resultData.error);
-                    PlatformFailure platformFailure = new PlatformFailure(failure, resultData.error, date);
-                    recipient.failure = platformFailure;
+                    FailureType failureType = PlatformHelper.getGcmFailureType(resultData.error);
+                    PlatformFailure platformFailure = new PlatformFailure(failureType, resultData.error, date);
+
+                    if (failureType.isFatal) {
+                        recipient.setState(RecipientState.STATE_FAILED);
+                    } else {
+                        MessageHelper.setRecipientRetry(getPlatform(), recipient, maxRetries);
+                    }
+
+                    if (recipient.getPlatformFailure() != null) {
+                        recipient.getPlatformFailure().setFailureType(platformFailure.getFailureType());
+                        recipient.getPlatformFailure().setFailureMessage(platformFailure.getFailureMessage());
+                        recipient.getPlatformFailure().setFailTime(platformFailure.getFailTime());
+
+                    } else {
+                        recipient.setFailure(platformFailure);
+                    }
 
                     // Add the error for that particular registration
-                    messageDispatchResult.failedRecipients.add(new FailedRecipient(recipient, platformFailure));
+                    messageDispatchResult.failedRecipients.add(recipient);
                 }
 
                 // Bump the master registration counter for all parts.
@@ -319,9 +337,9 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
     }
 
     private class MessageDispatchResult {
-        CopyOnWriteArrayList<Recipient> completedRecipients = new CopyOnWriteArrayList<>();
-        CopyOnWriteArrayList<FailedRecipient> recipientsToRetry = new CopyOnWriteArrayList<>();
-        CopyOnWriteArrayList<UpdatedRecipient> recipientsToUpdate = new CopyOnWriteArrayList<>();
-        CopyOnWriteArrayList<FailedRecipient> failedRecipients = new CopyOnWriteArrayList<>();
+        List<Recipient> completedRecipients = new ArrayList<>();
+        List<Recipient> recipientsToRetry = new ArrayList<>();
+        List<UpdatedRecipient> recipientsToUpdate = new ArrayList<>();
+        List<Recipient> failedRecipients = new ArrayList<>();
     }
 }

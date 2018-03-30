@@ -1,4 +1,8 @@
-# Push Notifications module for Play Framework
+## Push Notifications module for Play Framework
+
+Be sure to read the [Release Notes]("RELEASE-NOTES.md").
+
+
 
 A Play Framework Java module that makes it super simple to add **GCM** or (*soon*) **APNS** Push Notifications to your project. It has been built in a way that makes adding other push notification services a breeze.
 
@@ -30,21 +34,12 @@ The example below demonstrates sending late train alerts for a particular London
 **1:** Create credentials for your push provider. 
 
 ```java
-Credentials googleCredentials = new Credentials();
-googleCredentials.platformType = PlatformType.SERVICE_GCM;
+Credentials googleCredentials = new Credentials(PlatformType.SERVICE_GCM);
 googleCredentials.packageUri = "com.company.app";
 googleCredentials.authKey = "AEFbawuefAWEFwaEFea9OAKFAEWfeawKk";
 ```
 
-**2:** Create a map containing any number of recipient identifiers.
-
-```java
-Set<String> recipientTokens = new HashSet<>();
-recipientTokens.add("APA91bFcidzSlRTlyijOP04UCR8KXHfxi4j2VHfLv9TcE14QwjckJ3qB4gm69zbCjRygt..");
-recipientTokens.add("APA91bEHetahBunbXxD_-7RdoKVpIClSiijili1DUTtUDYJv00rBLTBf0nDsO4fEl1FUR..");
-```
-
-**3:** Add some sample data into key / value map.
+**2:** Add some sample data into key / value map.
 ```java
 Map<String, String> messageData = new HashMap<>();
 messageData.put("route", "Piccadilly Line");
@@ -54,43 +49,40 @@ messageData.put("minutes_late", "3");
 messageData.put("train_id", "2342");
 ```
 
-**4:** Build the notification message with `MessageBuilder`.
+**3:** Build the notification message with `MessageBuilder`.
 ```java
 Message lateTrain = new MessageBuilder.Builder()
         .setCollapseKey("piccadilly_line")
         .setPlatformCredentials(googleCredentials)
-        .setTimeToLiveSeconds(60 * 60 * 6)
-        .setDeviceTokens(recipientTokens)
+        .addDeviceToken("APA91bFcidzSlRTlyijOP04UCR8KXHfxi4j2VHfLv9TcE14QwjckJ3qB4gm69zbCjRygt")
+        .addDeviceToken("7RdKURjhqgaegbJDYTIAJTYRSshDFas6jili1DUTtUDYJv00rBLTBf0nDsO4fEl1Fjua")
         .setData(messageData);
         .build();
 ```
 
-**5:** Add one or more messages to a task, and queue it for dispatch.
+**4:** Add one or more messages to a task, and queue it for dispatch.
 ```java
 @Inject TaskQueue taskQueue;
 
-Task piccadillyLineStatus = new Task("piccadilly-line-update");
-piccadillyLineStatus.messages = Arrays.asList(lateTrain, secondLateTrain, ...);
-
-taskQueue.queueTask(piccadillyLineStatus, null);
+List<Message> messages = Arrays.asList(lateTrain, secondLateTrain, ...);
+taskQueue.queueMessages(messages, null);
 ```
 
 
 (Optionially, listen for provider updates such as token updates, deliver failures, etc).
 
 ```java
-taskQueue.queueTask(piccadillyLineStatus, new TaskQueueCallback() {
+taskQueue.queueMessages(messages, new TaskQueueListener() {
 	@Override
-	public void updatedRecipients(@Nonnull List<UpdatedRecipient> updatedRegistrations) {
+	public void updatedRecipients(@Nonnull List<UpdatedRecipient> updatedeRecipients) {
 		Logger.info("Recipients have updated registration tokens");
 	}
 	@Override
-	public void failedRecipients(@Nonnull List<FailedRecipient> failedRecipients) {
+	public void failedRecipients(@Nonnull List<Recipient> failedRecipients) {
 		Logger.info("Message delivery failed for some recipients");
 	}
 	@Override
-	public void messageCompleted(@Nonnull Message originalMessage) {
-		// failedRecipients() or updatedRecipients() may still have been invoked. 
+	public void messageCompleted(@Nonnull Message originalMessage) { 
 		Logger.info("Message delivery has completed.");
 	}
 	@Override
@@ -109,13 +101,8 @@ taskQueue.queueTask(piccadillyLineStatus, new TaskQueueCallback() {
 Add the jCenter repository and dependency to your `build.sbt` file.
 
 ```bash
-resolvers += (
-  "Bintray jCenter repository" at "https://jcenter.bintray.com"
-)
-
-libraryDependencies ++= Seq(
-    "com.splendidbits" % "play-pushservices" % "1.1"
-)
+resolvers += "Bintray jCenter repository" at "https://jcenter.bintray.com"
+libraryDependencies += "com.splendidbits" % "play-pushservices" % "1.2"
 ```
 
 
@@ -146,9 +133,8 @@ Add the module and database properties to your `application.conf ` file. Change 
 ```bash
 # PushServices module database configuration.
 pushservices.driver=org.postgresql.Driver
-pushservices.connectionTimeout=10 seconds
 pushservices.name="my_app"
-pushservices.url="jdbc:postgresql://localhost:5432/my_app"
+pushservices.url="jdbc:postgresql://localhost:5432/my_app_db"
 pushservices.username="sampleuser"
 pushservices.password="samplepass"
 pushservices.databasePlatformName="postgres"
@@ -156,7 +142,7 @@ pushservices.databasePlatformName="postgres"
 
 (You may also add any number of other support EBean ServerConfig properties. See the [ebean documentation](http://ebean-orm.github.io/docs/configuration/serverconfig) for more information).
 
-##### `sample/CREATE_SCHEMA` 
+##### `sample/pushservices-create-all.sql` 
 
 Import the pushservices database schema found in the sample project. You may change the database name and credentials as you see fit, but do not alter the schema or table names. 
 
@@ -195,4 +181,4 @@ The PushServices module is distributed under the GNU General Public License v3.0
 
 Happy messaging!
 
-Created by [Daniel Watson](https:/twitter.com/iamprobabllost)
+Created by [Daniel Watson](https://twitter.com/iamprobablylost)

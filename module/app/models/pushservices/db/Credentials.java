@@ -9,84 +9,77 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "credentials", schema = "pushservices")
-public class Credentials extends Model implements Cloneable {
+public class Credentials extends Model {
     public static Finder<Long, Credentials> find = new Finder<>(Credentials.class);
 
     @Id
     @JsonIgnore
     @Column(name = "id")
-    @SequenceGenerator(name = "credentials_id_seq_gen", sequenceName = "credentials_id_seq", allocationSize = 1)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "credentials_id_seq_gen")
-    public Long id;
+    @SequenceGenerator(name = "gen", sequenceName = "pushservices.credentials_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "gen")
+    protected Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "message_id",
-            table = "pushservices.messages",
-            referencedColumnName = "id")
-    public Message message;
+    @OneToOne(mappedBy = "credentials")
+    private Message message;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "platform")
-    public PlatformType platformType;
+    private PlatformType platformType;
 
     @Column(name = "authorisation_key", columnDefinition = "TEXT")
-    public String authKey;
+    private String authKey;
 
     @Column(name = "certificate_body", columnDefinition = "TEXT")
-    public String certBody;
+    private String certBody;
 
     @Column(name = "package_uri", columnDefinition = "TEXT")
-    public String packageUri;
+    private String packageUri;
 
-    @SuppressWarnings("unused")
-    public Credentials() {
+    public Credentials(PlatformType platformType) {
+        setPlatformType(platformType);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Credentials) {
-            Credentials other = (Credentials) obj;
-
-            boolean samePlatform = (platformType != null && other.platformType != null && platformType.equals(other.platformType));
-
-            boolean sameAuthorisationKey = (authKey != null && other.authKey != null && authKey.equals(other.authKey));
-
-            boolean sameCertificateBody = (certBody != null && other.certBody != null && certBody.equals(other.certBody));
-
-            boolean samePackageUri = (packageUri != null && other.packageUri != null && packageUri.equals(other.packageUri));
-
-            // Match everything.
-            return samePlatform && samePackageUri && (sameAuthorisationKey || sameCertificateBody);
-        }
-        return false;
+    public Long getId() {
+        return id;
     }
 
-    @Override
-    public int hashCode() {
-        Long hashCode = 0L;
-
-        hashCode += platformType != null
-                ? platformType.hashCode()
-                : hashCode;
-
-        hashCode += authKey != null
-                ? authKey.hashCode()
-                : hashCode;
-
-        hashCode += certBody != null
-                ? certBody.hashCode()
-                : hashCode;
-
-        hashCode += packageUri != null
-                ? packageUri.hashCode()
-                : hashCode;
-
-        return hashCode.hashCode();
+    public Message getMessage() {
+        return message;
     }
 
-    @Override
-    public Object clone() throws CloneNotSupportedException {
-        return super.clone();
+    public void setMessage(Message message) {
+        this.message = message;
+    }
+
+    public PlatformType getPlatformType() {
+        return platformType;
+    }
+
+    private void setPlatformType(PlatformType platformType) {
+        this.platformType = platformType;
+    }
+
+    public String getAuthKey() {
+        return authKey;
+    }
+
+    public void setAuthKey(String authKey) {
+        this.authKey = authKey;
+    }
+
+    public String getCertBody() {
+        return certBody;
+    }
+
+    public void setCertBody(String certBody) {
+        this.certBody = certBody;
+    }
+
+    public String getPackageUri() {
+        return packageUri;
+    }
+
+    public void setPackageUri(String packageUri) {
+        this.packageUri = packageUri;
     }
 }

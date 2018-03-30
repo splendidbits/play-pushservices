@@ -8,9 +8,9 @@ package exceptions.pushservices;
  * (This means you can use it as you wish, host and share modifications.)
  * Copyright 5/11/16 Splendid Bits.
  */
-public class TaskValidationException extends Throwable {
+public class MessageValidationException extends Throwable {
 
-    public TaskValidationException(String message) {
+    public MessageValidationException(String message) {
         super(message);
     }
 }
