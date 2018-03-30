@@ -2,7 +2,7 @@ Push Notification Services module for Play Framework
 -------------------------
 
 #### 1.2 - 2018.03.29
-- **IMPORTANT:** The backing persistence schemas has changed. Please create a new database using the database creation sql scripts found in the sample project. 
+- **IMPORTANT:** The backing persistence schemas have changed. Remove any existing *pushservices* database, and create afresh using the database creation sql scripts found in the sample project. 
 - Remove the idea of "Task" containers. It was overly complicated and had limited use. Message is now the top level of heirarchy.
 - Fix many issues with ebean persistence and make it generally way more reliable. 
 - Make Messages and children completely atomic in the ebean and TaskQueue lifecycle.

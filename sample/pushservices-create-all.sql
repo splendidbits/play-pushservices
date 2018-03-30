@@ -1,3 +1,5 @@
+create schema pushservices;
+
 create table pushservices.credentials (
   id                            bigint not null,
   platform                      varchar(4),
