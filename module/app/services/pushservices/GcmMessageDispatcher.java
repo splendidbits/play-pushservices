@@ -73,23 +73,27 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
 
         // Return error on no recipients.
         if (message.getRecipients() == null || message.getRecipients().isEmpty()) {
-            PlatformFailure platformFailure = new PlatformFailure(FailureType.MESSAGE_REGISTRATIONS_MISSING,
+            PlatformFailure failure = new PlatformFailure(FailureType.MESSAGE_REGISTRATIONS_MISSING,
                     PlatformHelper.getGcmFailureName(FailureType.MESSAGE_REGISTRATIONS_MISSING), currentTime);
-            responseListener.messageFailure(message, platformFailure);
+
+            for (Recipient recipient : message.getRecipients()) {
+                recipient.setState(RecipientState.STATE_FAILED);
+                recipient.setFailure(failure);
+            }
+            responseListener.messageFailure(message, failure);
             return;
         }
 
         // Return error on no platform.
         if (message.getCredentials() == null || message.getCredentials().getPlatformType() == null) {
-            PlatformFailure platformFailure = new PlatformFailure(FailureType.PLATFORM_AUTH_INVALID,
+            PlatformFailure failure = new PlatformFailure(FailureType.PLATFORM_AUTH_INVALID,
                     PlatformHelper.getGcmFailureName(FailureType.PLATFORM_AUTH_INVALID), currentTime);
 
             for (Recipient recipient : message.getRecipients()) {
                 recipient.setState(RecipientState.STATE_FAILED);
-                recipient.setFailure(platformFailure);
+                recipient.setFailure(failure);
             }
-
-            responseListener.messageFailure(message, platformFailure);
+            responseListener.messageFailure(message, failure);
             return;
         }
 
@@ -106,11 +110,11 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
             // Send each message and save the response. When all responses are returned, combine them and call listener.
             sendMessage(message, batch)
                     .thenAccept(response -> {
-                        GcmResponse gcmResponse = parseMessageResponse(response);
-                        Logger.debug(String.format("Finished parsing GCM Response for batch %d", batchNumber));
-
-                        messageBatchResponses.put(batchNumber, gcmResponse);
                         processedBatches.add(batchNumber);
+
+                        GcmResponse gcmResponse = parseMessageResponse(response);
+                        messageBatchResponses.put(batchNumber, gcmResponse);
+                        Logger.debug(String.format("Finished parsing GCM Response for batch %d", batchNumber));
 
                         // If all the provider responses have returned, combine all and return the result.
                         if (processedBatches.size() == recipientBatches.size()) {
@@ -129,7 +133,7 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
                             PlatformEndpointException exception = (PlatformEndpointException) e;
 
                             for (Recipient recipient : message.getRecipients()) {
-                                int statusCode = exception.mStatusCode;
+                                int statusCode = exception.statusCode;
 
                                 if (statusCode == 400) {
                                     recipient.setState(RecipientState.STATE_FAILED);
@@ -141,10 +145,11 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
                                     newFailure = new PlatformFailure(FailureType.PLATFORM_AUTH_INVALID,
                                             PlatformHelper.getGcmFailureName(FailureType.PLATFORM_AUTH_INVALID));
 
-                                } else if (statusCode >= 500 && statusCode <= 599) {
+                                } else if (statusCode == 420) {
                                     MessageHelper.setRecipientRetry(getPlatform(), recipient, message.getMaximumRetries());
-                                    newFailure = new PlatformFailure(FailureType.TEMPORARILY_UNAVAILABLE,
-                                            PlatformHelper.getGcmFailureName(FailureType.TEMPORARILY_UNAVAILABLE));
+                                    newFailure = new PlatformFailure(FailureType.RECIPIENT_RATE_EXCEEDED,
+                                            PlatformHelper.getGcmFailureName(FailureType.RECIPIENT_RATE_EXCEEDED));
+
                                 } else {
                                     recipient.setState(RecipientState.STATE_FAILED);
                                     newFailure = new PlatformFailure(FailureType.ERROR_UNKNOWN,
@@ -154,18 +159,13 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
                                 if (recipient.getPlatformFailure() == null) {
                                     recipient.setFailure(newFailure);
                                 }
-
-                                recipient.getPlatformFailure().setFailureType(newFailure.getFailureType());
-                                recipient.getPlatformFailure().setFailTime(new Date());
                             }
                         }
 
-                        if (newFailure.getFailureType().isFatal) {
+                        if (processedBatches.size() == recipientBatches.size()) {
                             responseListener.messageFailure(message, newFailure);
-                        } else {
-                            responseListener.messageSuccess(message, new ArrayList<>(),
-                                    new ArrayList<>(), new ArrayList<>(), message.getRecipients());
                         }
+
                         return null;
                     });
         }
@@ -179,8 +179,8 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
      * @return GcmResponse result from google for gcm message.
      */
     private GcmResponse parseMessageResponse(WSResponse response) {
-        if (response.getAllHeaders().containsKey("Retry-After")) {
-            throw new PlatformEndpointException(500, response.getBody());
+        if (response.getHeaders().containsKey("Retry-After")) {
+            throw new PlatformEndpointException(420, response.getBody());
 
         } else if (response.getStatus() != 200) {
             throw new PlatformEndpointException(response.getStatus(), response.getBody());
@@ -215,7 +215,6 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
             int recipientCount = 0;
 
             for (Recipient recipient : totalMessageRecipients) {
-
                 if (MessageHelper.isRecipientCoolingOff(recipient)) {
                     continue;
                 }
@@ -316,12 +315,7 @@ public class GcmMessageDispatcher extends PlatformMessageDispatcher {
                         MessageHelper.setRecipientRetry(getPlatform(), recipient, maxRetries);
                     }
 
-                    if (recipient.getPlatformFailure() != null) {
-                        recipient.getPlatformFailure().setFailureType(platformFailure.getFailureType());
-                        recipient.getPlatformFailure().setFailureMessage(platformFailure.getFailureMessage());
-                        recipient.getPlatformFailure().setFailTime(platformFailure.getFailTime());
-
-                    } else {
+                    if (recipient.getPlatformFailure() == null) {
                         recipient.setFailure(platformFailure);
                     }
 

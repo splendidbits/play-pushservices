@@ -1,6 +1,10 @@
 Push Notification Services module for Play Framework
 -------------------------
 
+#### 1.2.1 - 2018.03.31
+- Persistence and TaskQueue provider RATE_EXCEEDED fixes.
+- Fix multiple callbacks to interface.
+
 #### 1.2 - 2018.03.29
 - **IMPORTANT:** The backing persistence schemas have changed. Remove any existing *pushservices* database, and create afresh using the database creation sql scripts found in the sample project. 
 - Remove the idea of "Task" containers. It was overly complicated and had limited use. Message is now the top level of heirarchy.

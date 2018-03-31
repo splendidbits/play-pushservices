@@ -3,7 +3,7 @@ package dao.pushservices;
 import annotations.pushservices.PushServicesEbeanServer;
 import enums.pushservices.RecipientState;
 import io.ebean.EbeanServer;
-import io.ebean.OrderBy;
+import io.ebean.FetchConfig;
 import models.pushservices.db.Message;
 import play.Logger;
 
@@ -40,34 +40,6 @@ public class MessagesDao {
             return true;
         } catch (Exception e) {
             Logger.error(String.format("Error wiping all data rom database: %s.", e.getMessage()));
-        }
-        return false;
-    }
-
-    /**
-     * Deletes a message and all child entities from the database
-     *
-     * @param messageId messageId to delete.
-     * @return boolean of result.
-     */
-    public boolean deleteMessage(long messageId) {
-        try {
-            List<Message> messages = mEbeanServer.find(Message.class)
-                    .fetch("recipients")
-                    .fetch("recipients.failure")
-                    .fetch("credentials")
-                    .fetch("payloadData")
-                    .where()
-                    .idEq(messageId)
-					.findList();
-
-            if (!messages.isEmpty()) {
-                mEbeanServer.deleteAllPermanent(messages);
-                return true;
-            }
-
-        } catch (Exception e) {
-            Logger.error(String.format("Error deleting messages %s.", e.getMessage()));
         }
         return false;
     }
@@ -114,17 +86,12 @@ public class MessagesDao {
     @Nonnull
     public List<Message> fetchPendingMessages() {
         List<Message> pendingMessages = new ArrayList<>();
-
         try {
-            OrderBy<Message> order = new OrderBy<>("id");
-            order.reverse();
-
-            pendingMessages = mEbeanServer.createQuery(Message.class)
-                    .setOrderBy(order)
-                    .fetch("recipients")
-                    .fetch("recipients.failure")
-                    .fetch("credentials")
-                    .fetch("payloadData")
+            pendingMessages = mEbeanServer.find(Message.class)
+                    .fetch("recipients", new FetchConfig().lazy())
+                    .fetch("recipients.failure", new FetchConfig().lazy())
+                    .fetch("credentials", new FetchConfig().lazy())
+                    .fetch("payloadData", new FetchConfig().lazy())
                     .where()
                     .disjunction()
                     .eq("recipients.state", RecipientState.STATE_IDLE)

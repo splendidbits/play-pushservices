@@ -4,6 +4,7 @@ import enums.pushservices.PlatformType;
 import enums.pushservices.RecipientState;
 import exceptions.pushservices.MessageValidationException;
 import models.pushservices.db.Message;
+import models.pushservices.db.PlatformFailure;
 import models.pushservices.db.Recipient;
 import play.shaded.ahc.io.netty.util.internal.StringUtil;
 
@@ -104,7 +105,7 @@ public class MessageHelper {
         Date currentTime = new Date();
 
         return recipient.getState() != null &&
-                recipient.getState() == RecipientState.STATE_WAITING_RETRY &&
+                recipient.getState().equals(RecipientState.STATE_WAITING_RETRY) &&
                 recipient.getNextAttempt() != null &&
                 recipient.getNextAttempt().getTime() >= currentTime.getTime();
     }
@@ -120,7 +121,7 @@ public class MessageHelper {
             recipient.setState(RecipientState.STATE_FAILED);
             recipient.setNextAttempt(null);
 
-        } else {
+        } else if (!recipient.getState().equals(RecipientState.STATE_WAITING_RETRY)) {
             int newRetryCount = recipient.getSendAttemptCount() + 1;
             Calendar nextSendDate = Calendar.getInstance();
             nextSendDate.add(Calendar.MINUTE, 2 * newRetryCount);
@@ -130,6 +131,44 @@ public class MessageHelper {
             recipient.setNextAttempt(nextSendDate.getTime());
         }
     }
+
+    /**
+     * Check to see if the message has completed (every recipient has failed or succeeded).
+     */
+    public static boolean hasMessageCompleted(@Nonnull Message message) {
+        if (message.getRecipients() != null) {
+            for (Recipient recipient : message.getRecipients()) {
+                if (recipient.getState() != null &&
+                        (recipient.getState().equals(RecipientState.STATE_PROCESSING) ||
+                        recipient.getState().equals(RecipientState.STATE_WAITING_RETRY) ||
+                        recipient.getState().equals(RecipientState.STATE_IDLE))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Fail all recipients in a message with a failure.
+     *
+     * @param message the {@link Message} to fail.
+     */
+    public static void failMessage(Message message, PlatformFailure failure) {
+        if (message != null && message.getId() != null) {
+
+            if (message.getRecipients() != null) {
+                for (Recipient recipient : message.getRecipients()) {
+                    recipient.setState(RecipientState.STATE_FAILED);
+                    if (recipient.getPlatformFailure() == null && failure != null) {
+                        recipient.setFailure(failure);
+                    }
+                }
+            }
+        }
+    }
+
 
     /**
      * Returns true if any Message Recipients have states that have not failed or coompleted).
@@ -146,7 +185,7 @@ public class MessageHelper {
                     throw new MessageValidationException(String.format("No Recipient token for %d.", recipient.getId()));
                 }
 
-                if (isRecipientPending(recipient) && recipient.getSendAttemptCount() < message.getMaximumRetries()) {
+                if (isRecipientPending(recipient) && recipient.getSendAttemptCount() <= message.getMaximumRetries()) {
                     readyRecipients += 1;
                 }
             }

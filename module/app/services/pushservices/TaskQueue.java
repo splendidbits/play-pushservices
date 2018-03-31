@@ -3,6 +3,7 @@ package services.pushservices;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dao.pushservices.MessagesDao;
+import enums.pushservices.FailureType;
 import enums.pushservices.RecipientState;
 import exceptions.pushservices.MessageValidationException;
 import helpers.pushservices.MessageHelper;
@@ -183,25 +184,6 @@ public class TaskQueue {
     }
 
     /**
-     * Fail all recipients in a message.
-     *
-     * @param message the {@link Message} to fail.
-     */
-    private void failMessage(Message message, PlatformFailure failureDetails) {
-        if (message != null && message.getId() != null) {
-
-            if (message.getRecipients() != null) {
-                for (Recipient recipient : message.getRecipients()) {
-                    recipient.setState(RecipientState.STATE_FAILED);
-                    recipient.setFailure(failureDetails);
-                }
-            }
-            mMessagesDao.saveMessage(message);
-            removeMessageFromQueue(message);
-        }
-    }
-
-    /**
      * Ascertain whether the current message is being worked on or queued, and return true
      * if it is.
      *
@@ -229,13 +211,16 @@ public class TaskQueue {
         try {
             if (!MessageHelper.isMessageReady(message)) {
                 Logger.warn(String.format("Message %d has already finished and won't be dispatched.", message.getId()));
-                failMessage(message, new PlatformFailure("Message failed on dispatch"));
                 return;
             }
 
         } catch (MessageValidationException e) {
             Logger.error(String.format("Message %d invalid: %s", message.getId(), e.getMessage()));
-            failMessage(message, new PlatformFailure(e.getMessage()));
+            PlatformFailure failure = new PlatformFailure(FailureType.MESSAGE_PAYLOAD_INVALID, e.getMessage(), new Date());
+            MessageHelper.failMessage(message, failure);
+            mMessagesDao.saveMessage(message);
+
+            removeMessageFromQueue(message);
             return;
         }
 
@@ -291,46 +276,38 @@ public class TaskQueue {
         @Override
         public void messageSuccess(@Nonnull Message message, @Nonnull List<Recipient> successRecipients, @Nonnull List<Recipient> failedRecipients,
                                    @Nonnull List<UpdatedRecipient> recipientsToUpdate, @Nonnull List<Recipient> recipientsToRetry) {
-            if (message.getRecipients() != null) {
-                // Save the message.
-                if (!mMessagesDao.saveMessage(message)) {
-                    Logger.error("Failed to persist MessageResult message.");
-                    return;
+            mMessagesDao.saveMessage(message);
+
+            if (!MessageHelper.hasMessageCompleted(message)) {
+                queueMessage(message);
+                return;
+            }
+
+            // Client responses:
+            TaskQueueListener messageCallback = mExternalListeners.get(message.getId());
+            if (messageCallback != null) {
+
+                // Invoke updatedRecipients() callback.
+                if (!recipientsToUpdate.isEmpty()) {
+                    Logger.debug(String.format("[%d] recipients requiring token change", recipientsToUpdate.size()));
+                    messageCallback.updatedRecipients(recipientsToUpdate);
                 }
 
-                // Client responses:
-                TaskQueueListener messageCallback = mExternalListeners.get(message.getId());
-                if (messageCallback != null) {
-                    // Invoke updatedRecipients() callback.
-                    if (!recipientsToUpdate.isEmpty()) {
-                        Logger.debug(String.format("[%d] recipients requiring token change", recipientsToUpdate.size()));
-                        messageCallback.updatedRecipients(recipientsToUpdate);
-                    }
-
-                    // Invoke individual recipient failure callback.
-                    if (!failedRecipients.isEmpty()) {
-                        Logger.debug(String.format("[%d] failed recipients", failedRecipients.size()));
-                        messageCallback.failedRecipients(failedRecipients);
-                    }
-
-                    // Invoke messageCompleted() callback.
-                    if (!successRecipients.isEmpty() && recipientsToRetry.isEmpty()) {
-                        Logger.debug(String.format("[%d] successful recipients", successRecipients.size()));
-                        messageCallback.messageCompleted(message);
-                    }
+                // Invoke individual recipient failure callback.
+                if (!failedRecipients.isEmpty()) {
+                    Logger.debug(String.format("[%d] failed recipients", failedRecipients.size()));
+                    messageCallback.failedRecipients(failedRecipients);
                 }
 
-                // Re-queue the message to be dispatched if there are still retry recipients.
-                if (recipientsToRetry.isEmpty()) {
-                    Logger.info(String.format("Message %d completed.", message.getId()));
-                    removeMessageFromQueue(message);
-
-                } else {
-                    Logger.debug(String.format("Message %d has pending recipients - Requeueing message", message.getId()));
-                    mActiveMessages.remove(message.getId());
-                    queueMessage(message);
+                // Invoke messageCompleted() callback.
+                if (MessageHelper.hasMessageCompleted(message)) {
+                    Logger.debug(String.format("[%d] successful recipients", successRecipients.size()));
+                    messageCallback.messageCompleted(message);
                 }
             }
+
+            Logger.info(String.format("Message %d completed.", message.getId()));
+            removeMessageFromQueue(message);
         }
 
         @Override
@@ -339,8 +316,10 @@ public class TaskQueue {
                     failure.getFailureType().name(), message.getId()));
 
             // Update the message entry.
-            if (!mMessagesDao.saveMessage(message)) {
-                Logger.error("Failed to persist MessageResult message.");
+            mMessagesDao.saveMessage(message);
+
+            if (!MessageHelper.hasMessageCompleted(message)) {
+                queueMessage(message);
                 return;
             }
 

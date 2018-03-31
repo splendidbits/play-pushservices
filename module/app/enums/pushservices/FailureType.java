@@ -107,8 +107,8 @@ public enum FailureType {
     /**
      * [GCM] [APNS]
      *
-     * Check that the value used in time_to_live is an integer representing a duration
-     * in seconds between 0 and 2,419,200 (4 weeks).
+     * You are sending too many messages. TaskQueue will exponentially retry until message max
+     * retries has been reached.
      */
     @EnumValue("RECIPIENT_RATE_EXCEEDED")
     RECIPIENT_RATE_EXCEEDED(false),

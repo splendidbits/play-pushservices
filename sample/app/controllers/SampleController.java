@@ -65,22 +65,22 @@ public class SampleController extends Controller {
             try {
                 mTaskQueue.queueMessages(Collections.singletonList(messageBuilder.build()), new TaskQueueListener() {
                     @Override
-                    public void updatedRecipients(@Nonnull List<UpdatedRecipient> updatedRegistrations) {
+                    public void updatedRecipients(@Nonnull List<UpdatedRecipient> recipients) {
                         Logger.info("Recipients have updated registration tokens");
                     }
 
                     @Override
-                    public void failedRecipients(@Nonnull List<Recipient> failedRecipients) {
+                    public void failedRecipients(@Nonnull List<Recipient> recipients) {
                         Logger.info("Message delivery failed for some recipients");
                     }
 
                     @Override
-                    public void messageCompleted(@Nonnull Message originalMessage) {
+                    public void messageCompleted(@Nonnull Message message) {
                         Logger.info("Message delivery has completed.");
                     }
 
                     @Override
-                    public void messageFailed(@Nonnull Message originalMessage, PlatformFailure failure) {
+                    public void messageFailed(@Nonnull Message message, PlatformFailure failure) {
                         Logger.info("Message failed for all recipients");
                     }
                 });

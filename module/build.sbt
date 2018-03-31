@@ -2,7 +2,7 @@ name := "play-pushservices"
 organization := "com.splendidbits"
 organizationName := "Splendid Bits"
 organizationHomepage := Some(new URL("https://splendidbits.co"))
-version := "1.2"
+version := "1.2.1"
 
 lazy val buildSettings = Seq(
   scalaVersion := "2.11.8"
@@ -18,7 +18,8 @@ libraryDependencies ++= Seq(
   javaJpa,
   javaWs,
   guice,
-  "io.ebean" % "ebean-agent" % "10.1.6",
+  "io.ebean" % "ebean" % "11.15.3",
+  "io.ebean" % "ebean-agent" % "11.11.1",
   "commons-io" % "commons-io" % "2.5",
   "com.google.code.gson" % "gson" % "2.8.2",
   "org.postgresql" % "postgresql" % "42.2.2" % Test,
@@ -32,6 +33,7 @@ playEbeanModels in Compile := Seq(
 
 // Bintray publishing
 // run 'sbt bintrayChangeCredentials' first!
+
 crossPaths := false
 pomIncludeRepository := (_ => true)
 publishArtifact in Test := false

@@ -20,34 +20,34 @@ public interface TaskQueueListener {
     /**
      * Invoked with a collection of updated {@link Recipient} registrations.
      *
-     * @param updatedRegistrations A an old and new {@link Recipient} in a Map of stale and updated
-     *                             registrations s in the format:
-     *                             <Registration staleRegistration, Registration updatedRegistration>
+     * @param recipients A an old and new {@link Recipient} in a Map of stale and updated
+     *                   registrations s in the format:
+     *                   <Registration staleRegistration, Registration updatedRegistration>
      */
-    void updatedRecipients(@Nonnull List<UpdatedRecipient> updatedRegistrations);
+    void updatedRecipients(@Nonnull List<UpdatedRecipient> recipients);
 
     /**
      * Notification of a failure for a particular message recipient. This does not mean
      * the message as a whole has fully completed or failed yet.
      *
-     * @param failedRecipients Recipients that a message was undeliverable to.
+     * @param recipients Recipients that a message was undeliverable to.
      */
-    void failedRecipients(@Nonnull List<Recipient> failedRecipients);
+    void failedRecipients(@Nonnull List<Recipient> recipients);
 
     /**
      * All recipients in a Message were processed and sent, but some recipients may
      * still have failures.
      *
-     * @param originalMessage The taskCompleted Task.
+     * @param message The taskCompleted Task.
      */
-    void messageCompleted(@Nonnull Message originalMessage);
+    void messageCompleted(@Nonnull Message message);
 
     /**
      * All recipients in a message failed due to an unrecoverable failure, and
      * will not be retried.
      *
-     * @param originalMessage Message which failed.
-     * @param failure         Failure details
+     * @param message Message which failed.
+     * @param failure Failure details
      */
-    void messageFailed(@Nonnull Message originalMessage, PlatformFailure failure);
+    void messageFailed(@Nonnull Message message, PlatformFailure failure);
 }
