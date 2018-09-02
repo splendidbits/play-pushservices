@@ -11,7 +11,7 @@ import io.ebean.annotation.EnumValue;
  */
 public enum PlatformType {
     @EnumValue("GCM")
-    SERVICE_GCM("GCM", "https://gcm-http.googleapis.com/gcm/send"),
+    SERVICE_GCM("GCM", "https://fcm.googleapis.com/fcm/send"),
 
     @EnumValue( "APNS")
     SERVICE_APNS("APNS", "https://gateway.sandbox.push.apple.com");

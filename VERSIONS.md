@@ -1,6 +1,10 @@
 Push Notification Services module for Play Framework
 -------------------------
 
+#### 1.2.2 - 2018.08.02
+
+- Migrate from legacy Google GCM endpoint to the Firebase Messaging endpoint.
+
 #### 1.2.1 - 2018.03.31
 - Persistence and TaskQueue provider RATE_EXCEEDED fixes.
 - Fix multiple callbacks to interface.

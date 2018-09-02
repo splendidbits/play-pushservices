@@ -1,6 +1,6 @@
 ## Push Notifications module for Play Framework
 
-Be sure to read the [Release Notes](RELEASE-NOTES.md).
+Be sure to read the [Release Notes](VERSIONS.md).
 
 
 
